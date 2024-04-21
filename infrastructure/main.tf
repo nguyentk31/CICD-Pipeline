@@ -11,18 +11,7 @@ provider "aws" {
   region = "us-west-1"
 }
 
-data "aws_ami" "ami" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  owners = ["self"]
-}
-
 resource "aws_instance" "ansible_server" {
-  ami           = data.aws_ami.ami.id
+  ami           = "ami-080e1f13689e07408"
   instance_type = "t2.micro"
 }
