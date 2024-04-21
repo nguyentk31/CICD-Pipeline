@@ -12,7 +12,7 @@ provider "aws" {
 }
 
 resource "aws_instance" "ansible_server" {
-  ami           = "ami-0cd59ecaf368e5ccf"
+  ami           = "ami-07d9b9ddc6cd8dd30"
   instance_type = "t2.micro"
 
   tags = {
