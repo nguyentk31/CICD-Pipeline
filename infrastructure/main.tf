@@ -16,6 +16,7 @@ resource "aws_instance" "ansible_server" {
   instance_type = "t2.micro"
 
   tags = {
-    Name = "testing101"
+
+    Name = "testing 01"
   }
 }
