@@ -2,7 +2,6 @@ variable "eks_roles" {
   type = list(object({
     role_name = string
     trusted_entities = string
-    tags = map
   }))
   description = "List of roles in EKS"
 }
