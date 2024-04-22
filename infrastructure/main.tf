@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 # module "vpc" {
-#   source = "./vpc"
+#   source = "./modules/vpc"
 
 #   project_name = var.project_name
 #   vpc_cidr = "10.0.0.0/16"
@@ -12,11 +12,13 @@ provider "aws" {
 # }
 
 module "iam" {
-  source = "./iam"
+  source = "./modules/iam"
 
   project_name = var.project_name
   github_account_id = var.github_account_id
-  eks_environments = ["prod", "dev"]
+  eks_environments = var.eks_environments
+  eks_roles = var.eks_roles
+  eks_policy_attachments = var.eks_policy_attachments
 }
 
 # data "aws_ami" "ubuntu" {
