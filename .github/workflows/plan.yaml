@@ -2,7 +2,7 @@ name: Github actions 101
 run-name: ${{ github.actor }} is testing 🚀
 
 on:
-  push:
+  pull_request:
     branches:
       - main
       - dev
