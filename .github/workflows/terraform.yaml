@@ -23,7 +23,7 @@ env:
 
 jobs:
   Terraform:
-    name: "Terraform Apply"
+    name: "Terraform Run"
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write

@@ -1,23 +1,38 @@
-terraform {
-  cloud {
-  }
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-      version = "~> 4.0"
-    }
-  }
-}
-
 provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_instance" "ansible_server" {
-  ami           = "ami-07d9b9ddc6cd8dd30"
-  instance_type = "t2.micro"
+module "vpc" {
+  source = "./vpc"
+
+  vpc_name = "DACN"
+  vpc_cidr = "10.0.0.0/16"
+  number_public_subnets = 2
+  number_private_subnets = 2
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "web" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.micro"
+  subnet_id = module.vpc.public_subnets[0]
 
   tags = {
-    Name = "testing 1"
+    Name = "HelloWorld"
   }
 }
