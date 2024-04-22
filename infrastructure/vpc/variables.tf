@@ -1,6 +1,6 @@
-variable "vpc_name" {
+variable "project_name" {
   type = string
-  description = "VPC NAME"
+  description = "PROJECT's NAME"
 }
 
 variable "vpc_cidr" {
