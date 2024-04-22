@@ -15,6 +15,6 @@ output "admins_role" {
   description = "ARN of EKS admins role"
 }
 output "test" {
-  value = aws_iam_role.admins-role[*].tags["env"]
+  value = aws_iam_role.admins-role[*]
   description = "ARN of EKS admins role"
 }
