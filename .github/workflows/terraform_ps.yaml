@@ -1,5 +1,5 @@
 name: Terraform Apply
-run-name: ${{ github.actor }} pushed ${{ github.ref }} 🧨
+run-name: ${{ github.actor }} pushed to ${{ github.ref }} 🧨
 
 on: 
   push:
@@ -36,10 +36,6 @@ jobs:
       - name: Terraform Init
         id: init
         run: terraform init
-
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -no-color -input=false
   
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false
