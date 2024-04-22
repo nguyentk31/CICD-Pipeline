@@ -15,22 +15,22 @@
 
 # Outputs of IAM
 output "cluster_role" {
-  value = module.iam.aws_iam_role.cluster-role.arn
+  value = module.iam.cluster_role
   description = "ARN of EKS cluster role"
 }
 output "nodegroup_role" {
-  value = module.iam.aws_iam_role.nodegroup-role.arn
+  value = module.iam.nodegroup_role
   description = "ARN of EKS nodegroup role"
 }
 output "pod_role" {
-  value = module.iam.aws_iam_role.pod-role.arn
+  value = module.iam.pod_role
   description = "ARN of EKS pod role"
 }
 output "admins_role" {
-  value = module.iam.aws_iam_role.admins-role[*]
+  value = module.iam.admins_role
   description = "ARN of EKS admins role"
 }
 output "test" {
-  value = module.iam.aws_iam_role.admins-role[*]
+  value = module.iam.test
   description = "ARN of EKS admins role"
 }
