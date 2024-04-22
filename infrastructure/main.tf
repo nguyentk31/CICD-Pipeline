@@ -31,6 +31,7 @@ resource "aws_instance" "web" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t3.micro"
   subnet_id = module.vpc.public_subnets[0]
+  key_name = "vockey"
 
   tags = {
     Name = "HelloWorld"
