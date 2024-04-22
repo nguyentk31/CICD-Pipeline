@@ -72,7 +72,7 @@ resource "aws_iam_role_policy_attachment" "pod-AmazonEKSWorkerNodePolicy" {
 
 // EKS ADMIN USER ROLE
 resource "aws_iam_role" "users-role" {
-  name = "${var.project_name}-eksAdmin-role"
+  name = "${var.project_name}-EKSAdmin-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
