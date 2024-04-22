@@ -77,10 +77,12 @@ resource "aws_iam_role" "users-role" {
     Version = "2012-10-17"
     Statement = [
       {
-        "Effect": "Allow",
-        "Action": "sts:AssumeRole",
-        "Resource": "arn:aws:iam::${var.github_account_id}:role/EKSAdmin"
-      },
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          AWS = var.github_account_id
+        }
+      }
     ]
   })
 }
