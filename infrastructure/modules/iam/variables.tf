@@ -4,7 +4,7 @@ variable "eks_roles" {
     trusted_entities = object({
       Version = string,
       Statement = list(object({
-        Actions = string,
+        Action = list(string),
         Effect = string,
         Principal = map(string)
       }))
@@ -14,10 +14,7 @@ variable "eks_roles" {
 }
 
 variable "eks_policy_attachments" {
-  type = list(object({
-    role_name = string
-    policy_arn = string
-  }))
+  type = list(map(string))
   description = "List of policy attachments in EKS"
 }
 

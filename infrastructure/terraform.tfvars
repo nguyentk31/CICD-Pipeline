@@ -12,7 +12,7 @@ eks_roles = [
       Version = "2012-10-17"
       Statement = [
         {
-          Action = "sts:AssumeRole"
+          Action = ["sts:AssumeRole"]
           Effect = "Allow"
           Principal = {
             Service = "eks.amazonaws.com"
@@ -27,7 +27,7 @@ eks_roles = [
       Version = "2012-10-17"
       Statement = [
         {
-          Action = "sts:AssumeRole"
+          Action = ["sts:AssumeRole"]
           Effect = "Allow"
           Principal = {
             Service = "ec2.amazonaws.com"
@@ -56,18 +56,18 @@ eks_roles = [
 eks_policy_attachments = [
   {
     role_name = "cluster"
-    policies_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+    policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   },
   {
     role_name = "nodegroup"
-    policies_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+    policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
   },
   {
     role_name = "nodegroup"
-    policies_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   },
   {
     role_name = "pod"
-    policies_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+    policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
   },
 ]
