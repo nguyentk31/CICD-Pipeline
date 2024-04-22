@@ -73,7 +73,7 @@ resource "aws_iam_role_policy_attachment" "pod-AmazonEKSWorkerNodePolicy" {
 // EKS ADMINS ROLE ( Production, development admins)
 resource "aws_iam_role" "admins-role" {
   count = length(var.eks_environments)
-  name = "${var.project_name}-${var.eks_environments[count]}Admin-role"
+  name = "${var.project_name}-${var.eks_environments[count.index]}Admin-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -88,6 +88,6 @@ resource "aws_iam_role" "admins-role" {
   })
 
   tags = {
-    env = var.eks_environments[count]
+    env = var.eks_environments[count.index]
   }
 }
