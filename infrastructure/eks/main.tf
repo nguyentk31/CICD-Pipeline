@@ -1,8 +1,7 @@
 // EKS CLUSTER
 resource "aws_eks_cluster" "cluster" {
   name     = var.cluster_name
-  # role_arn = aws_iam_role.cluster-role.arn
-  role_arn = data.aws_iam_role.lab-role.arn
+  role_arn = aws_iam_role.cluster-role.arn
   version = var.k8s_version
 
   access_config {
@@ -12,59 +11,16 @@ resource "aws_eks_cluster" "cluster" {
 
   vpc_config {
     endpoint_public_access = true
-    endpoint_private_access = false
+    endpoint_private_access = true
     subnet_ids = var.cluster_subnet_ids
   }
 
   kubernetes_network_config {
     service_ipv4_cidr = "172.16.0.0/16"
   }
-
-  # depends_on = [ aws_iam_role_policy_attachment.cluster-AmazonEKSClusterPolicy ]
 }
 
 // EKS NODE GROUP
-// SYSTEM NODE GROUP
-resource "aws_eks_node_group" "system-node-group" {
-  cluster_name    = aws_eks_cluster.cluster.name
-  node_group_name = "system-managed-node-group"
-  # node_role_arn   = aws_iam_role.nodes-role.arn
-  node_role_arn = data.aws_iam_role.lab-role.arn
-  subnet_ids      = var.node_group_subnet_ids
-
-  scaling_config {
-    desired_size = 1
-    max_size     = 3
-    min_size     = 1
-  }
-
-  update_config {
-    max_unavailable = 1
-  }
-
-  taint {
-    key = "CriticalAddonsOnly"
-    value = "true"
-    effect = "NO_SCHEDULE"
-  }
-  
-  taint {
-    key = "CriticalAddonsOnly"
-    value = "true"
-    effect = "NO_EXECUTE"
-  }
-
-  lifecycle {
-    ignore_changes = [scaling_config[0].desired_size] // Ignore desired size 
-  }
-
-  # depends_on = [
-  #   aws_iam_role_policy_attachment.nodes-AmazonEKSWorkerNodePolicy,
-  #   aws_iam_role_policy_attachment.nodes-AmazonEC2ContainerRegistryReadOnly
-  # ]
-}
-
-// APP NODE GROUP
 resource "aws_eks_node_group" "app-node-group" {
   cluster_name    = aws_eks_cluster.cluster.name
   node_group_name = "application-managed-node-group"
@@ -86,10 +42,6 @@ resource "aws_eks_node_group" "app-node-group" {
     ignore_changes = [scaling_config[0].desired_size] // Ignore desired size 
   }
 
-  # depends_on = [
-  #   aws_iam_role_policy_attachment.nodes-AmazonEKSWorkerNodePolicy,
-  #   aws_iam_role_policy_attachment.nodes-AmazonEC2ContainerRegistryReadOnly,
-  # ]
 }
 
 // EKS ACCESS ENTRY AND POLICY

@@ -30,7 +30,7 @@ output "admins_role" {
   value = module.iam.admins_role
   description = "ARN of EKS admins role"
 }
-output "test" {
-  value = module.iam.test
-  description = "ARN of EKS admins role"
+output "attachments_role" {
+  value = module.attachments_role
+  description = "testing"
 }
