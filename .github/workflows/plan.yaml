@@ -2,7 +2,7 @@ name: Terraform
 run-name: ${{ github.actor }} is testing 🚀
 
 on:
-  pull_request:
+  push:
     branches:
       - main
       - dev
