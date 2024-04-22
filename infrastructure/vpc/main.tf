@@ -27,7 +27,7 @@ resource "aws_subnet" "public-subnets" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${var.vpc_name}-public-subnet-${count.index+1}"
+    Name = "${var.project_name}-public-subnet-${count.index+1}"
     "kubernetes.io/role/elb" = "1"
   }
 }
@@ -40,7 +40,7 @@ resource "aws_subnet" "private-subnets" {
   availability_zone = data.aws_availability_zones.azs.names[count.index % length(data.aws_availability_zones.azs)]
 
   tags = {
-    Name = "${var.vpc_name}-private-subnet-${count.index+1}"
+    Name = "${var.project_name}-private-subnet-${count.index+1}"
     "kubernetes.io/role/internal-elb" = "1"
   }
 }
@@ -50,7 +50,7 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.vpc.id
 
   tags = {
-    Name = "${var.vpc_name}-internet-gateway"
+    Name = "${var.project_name}-internet-gateway"
   }
 }
 
@@ -64,7 +64,7 @@ resource "aws_nat_gateway" "natgw" {
   connectivity_type = "public"
 
   tags = {
-    Name = "${var.vpc_name}-nat-gateway"
+    Name = "${var.project_name}-nat-gateway"
   }
 
   depends_on = [aws_internet_gateway.igw]
@@ -80,7 +80,7 @@ resource "aws_route_table" "pub-rt" {
   }
 
   tags = {
-    Name = "${var.vpc_name}-public-route-table"
+    Name = "${var.project_name}-public-route-table"
   }
 }
 
@@ -93,7 +93,7 @@ resource "aws_route_table" "pri-rt" {
   }
 
   tags = {
-    Name = "${var.vpc_name}-private-route-table"
+    Name = "${var.project_name}-private-route-table"
   }
 }
 
