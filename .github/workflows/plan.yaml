@@ -6,8 +6,8 @@ on:
     branches:
       - main
       - dev
-    paths:
-      - 'infrastructure/**'
+    # paths:
+    #   - 'infrastructure/**'
 
 env:
   CONFIG_DIRECTORY: "./infrastructure/"
