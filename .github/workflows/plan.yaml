@@ -1,4 +1,4 @@
-name: Terraform
+name: Github actions 101
 run-name: ${{ github.actor }} is testing 🚀
 
 on:
@@ -22,38 +22,71 @@ jobs:
   Terraform:
     name: "Terraform Plan"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: ${{ env.CONFIG_DIRECTORY }}
     steps:
-      - uses: kvrhdn/tfe-run@v1
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
         with:
-          # Token used to communicate with the Terraform Cloud API. Must be a user or
-          # team api token.
-          token: ${{ env.TF_API_TOKEN }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
       
-          # Name of the organization on Terraform Cloud. Defaults to the GitHub
-          # organization name.
-          organization: ${{ env.TF_CLOUD_ORGANIZATION }}
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+    
+      - name: Terraform Init
+        id: init
+        run: terraform init
       
-          # Name of the workspace on Terraform Cloud.
-          workspace: ${{ env.TF_WORKSPACE }}
-      
-          # Optional message to use as name of the run.
-          message: |
-            Run triggered using tfe-run (commit: ${{ github.SHA }})
-      
-          # The directory that is uploaded to Terraform Cloud/Enterprise, defaults
-          # to the repository root. Respsects .terraformignore. Note: this is
-          # prefixed to the "Terraform Working Directory" in the remote workspace
-          # settings.
-          directory: ${{ env.CONFIG_DIRECTORY }}
-      
-          # The type of run, allowed options are 'plan', 'apply' and 'destroy'.
-          type: plan
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
 
-          # Whether we should wait for the plan or run to be applied. This will block
-          # until the run is finished.
-          wait-for-completion: true
-
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -input=false
+        continue-on-error: true
       
-        # Optionally, assign this step an ID so you can refer to the outputs from the
-        # action with ${{ steps.<id>.outputs.<output variable> }}
-        id: tfe-run
+      - uses: actions/github-script@v6
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+      
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+      
+            </details>
+      
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+      
+            <details><summary>Show Plan</summary>
+      
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+      
+            </details>
+      
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.CONFIG_DIRECTORY }}\`, Workflow: \`${{ github.workflow }}\`*`;
+      
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
