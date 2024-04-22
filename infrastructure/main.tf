@@ -16,6 +16,7 @@ module "iam" {
 
   project_name = var.project_name
   github_account_id = var.github_account_id
+  eks_environments = ["prod", "dev"]
 }
 
 # data "aws_ami" "ubuntu" {
