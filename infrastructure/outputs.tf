@@ -31,6 +31,6 @@ output "admins_role" {
   description = "ARN of EKS admins role"
 }
 output "attachments_role" {
-  value = module.attachments_role
+  value = module.iam.attachments_role
   description = "testing"
 }
