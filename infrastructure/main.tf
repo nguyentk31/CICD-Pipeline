@@ -37,3 +37,8 @@ resource "aws_instance" "web" {
     Name = "HelloWorld"
   }
 }
+
+resource "aws_ecr_repository" "repo" {
+  name = "my-repo"
+  force_delete = true
+}
