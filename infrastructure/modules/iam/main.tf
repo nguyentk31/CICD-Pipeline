@@ -95,7 +95,7 @@ resource "aws_iam_role" "admins-role" {
 resource "aws_iam_role" "eks-roles" {
   count = length(var.eks_roles)
   name = "${var.project_name}-${var.eks_roles[count.index].role_name}-role"
-  assume_role_policy = var.eks_roles[count.index].trusted_entities
+  assume_role_policy = jsonencode(var.eks_roles[count.index].trusted_entities)
 }
 
 resource "aws_iam_role_policy_attachment" "eks-policy-attachment" {

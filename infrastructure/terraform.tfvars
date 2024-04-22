@@ -8,7 +8,7 @@ eks_environments = ["prod", "dev"]
 eks_roles = [
   {
     role_name = "cluster"
-    trusted_entities = jsonencode({
+    trusted_entities = {
       Version = "2012-10-17"
       Statement = [
         {
@@ -19,11 +19,11 @@ eks_roles = [
           }
         },
       ]
-    })
+    }
   },
   {
     role_name = "nodegroup"
-    trusted_entities = jsonencode({
+    trusted_entities = {
       Version = "2012-10-17"
       Statement = [
         {
@@ -34,23 +34,22 @@ eks_roles = [
           }
         },
       ]
-    })
+    }
   },
   {
     role_name = "pod"
-    trusted_entities = jsonencode({
+    trusted_entities = {
       Version = "2012-10-17"
       Statement = [
         {
           Action = ["sts:AssumeRole", "sts:TagSession"]
           Effect = "Allow"
-          Sid    = "AllowEksAuthToAssumeRoleForPodIdentity"
           Principal = {
             Service = "pods.eks.amazonaws.com"
           }
         },
       ]
-    })
+    }
   },
 ]
 
