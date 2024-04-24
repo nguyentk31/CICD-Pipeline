@@ -6,8 +6,8 @@ on:
       - main
 
 env:
-  CONFIG_DIRECTORY: "./infrastructure"
-  TF_CLI_ARGS: "-var-file=terraform_iam.tfvars"
+  CONFIG_DIRECTORY: "./infrastructure/"
+  # TF_CLI_ARGS: "-var-file=terraform_iam.tfvars"
   TF_CLOUD_ORGANIZATION: ${{ secrets.TF_CLOUD_ORGANIZATION }}
   TF_WORKSPACE: 'test'
   TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
@@ -31,6 +31,8 @@ jobs:
           directory: ${{ env.CONFIG_DIRECTORY }}
 
       - name: Create Apply Run
+        env:
+          TF_CLI_ARGS: "-var-file=terraform_iam.tfvars"
         uses: hashicorp/tfc-workflows-github/actions/create-run@v1.0.0
         id: apply-run
         with:
