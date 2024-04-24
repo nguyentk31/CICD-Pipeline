@@ -7,7 +7,7 @@ on:
 
 env:
   CONFIG_DIRECTORY: "./infrastructure"
-  TF_CLI_ARGS: '-var-file="terraform_iam.tfvars"'
+  TF_CLI_ARGS: "-var-file=terraform_iam.tfvars"
   TF_CLOUD_ORGANIZATION: ${{ secrets.TF_CLOUD_ORGANIZATION }}
   TF_WORKSPACE: 'test'
   TF_API_TOKEN: ${{ secrets.TF_API_TOKEN }}
