@@ -26,15 +26,3 @@
 #   value = module.iam.pod_role
 #   description = "ARN of EKS pod role"
 # }
-output "admins_role" {
-  value = module.iam.admins_role
-  description = "ARN of EKS admins role"
-}
-output "eks_roles" {
-  value = module.iam.eks_roles
-  description = "ARN of EKS role"
-}
-output "attachments_role" {
-  value = module.iam.attachments_role
-  description = "testing"
-}

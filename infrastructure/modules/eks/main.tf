@@ -1,7 +1,7 @@
 // EKS CLUSTER
 resource "aws_eks_cluster" "cluster" {
-  name     = var.cluster_name
-  role_arn = aws_iam_role.cluster-role.arn
+  name     = "${var.project_name}-Cluster"
+  role_arn = var.eks_cluster_roles.cluster
   version = var.k8s_version
 
   access_config {
@@ -23,9 +23,8 @@ resource "aws_eks_cluster" "cluster" {
 // EKS NODE GROUP
 resource "aws_eks_node_group" "app-node-group" {
   cluster_name    = aws_eks_cluster.cluster.name
-  node_group_name = "application-managed-node-group"
-  # node_role_arn   = aws_iam_role.nodes-role.arn
-  node_role_arn = data.aws_iam_role.lab-role.arn
+  node_group_name = "${var.project_name}-Nodegroup"
+  node_role_arn   = var.eks_cluster_roles.nodegroup
   subnet_ids      = var.node_group_subnet_ids
 
   scaling_config {
@@ -44,77 +43,22 @@ resource "aws_eks_node_group" "app-node-group" {
 
 }
 
-// EKS ACCESS ENTRY AND POLICY
-resource "aws_eks_access_entry" "master-ae" {
+// EKS masters access entry and policy association
+resource "aws_eks_access_entry" "masters-access_entry" {
+  for_each = var.eks_masters_role
   cluster_name      = aws_eks_cluster.cluster.name
-  principal_arn     = aws_iam_role.users-role[0].arn
-  user_name              = "master"
+  principal_arn     = each.value
+  user_name              = "EKS-${each.key}-${each.value}"
 }
 
-resource "aws_eks_access_policy_association" "master-ap" {
+resource "aws_eks_access_policy_association" "master-policy-association" {
+  for_each = var.eks_masters_role
   cluster_name  = aws_eks_cluster.cluster.name
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-  principal_arn = aws_iam_role.users-role[0].arn
-
-  access_scope {
-    type       = "cluster"
-  }
-}
-
-resource "aws_eks_access_entry" "admin-ae" {
-  cluster_name      = aws_eks_cluster.cluster.name
-  principal_arn     = aws_iam_role.users-role[0].arn
-  user_name              = "admin"
-}
-
-resource "aws_eks_access_policy_association" "admin-ap" {
-  cluster_name  = aws_eks_cluster.cluster.name
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
-  principal_arn = aws_iam_role.users-role[0].arn
-
-  access_scope {
-    type       = "cluster"
-  }
-}
-
-resource "aws_eks_access_entry" "dev-ae" {
-  cluster_name      = aws_eks_cluster.cluster.name
-  principal_arn     = aws_iam_role.users-role[1].arn
-  user_name              = "developer"
-}
-
-resource "aws_eks_access_policy_association" "dev-ap" {
-  cluster_name  = aws_eks_cluster.cluster.name
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
-  principal_arn = aws_iam_role.users-role[1].arn
+  principal_arn = each.value
 
   access_scope {
     type       = "namespace"
-    namespaces = ["application"]
+    namespaces = [each.key]
   }
-}
-
-resource "aws_eks_access_entry" "test-ae" {
-  cluster_name    = aws_eks_cluster.cluster.name
-  principal_arn   = aws_iam_role.users-role[2].arn
-  user_name          = "tester"
-}
-
-resource "aws_eks_access_policy_association" "test-ap" {
-  cluster_name    = aws_eks_cluster.cluster.name
-  policy_arn      = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
-  principal_arn   = aws_iam_role.users-role[2].arn
-
-  access_scope {
-    type       = "namespace"
-    namespaces = ["application"]
-  }
-}
-
-// AWS EKS (Elastic Kubernetes) Pod Identity Association.
-resource "aws_eks_pod_identity_association" "pod-ia" {
-  cluster_name    = aws_eks_cluster.cluster.name
-  namespace       = "kube-system"
-  service_account = "aws-node"
-  role_arn        = aws_iam_role.pod-role.arn
 }

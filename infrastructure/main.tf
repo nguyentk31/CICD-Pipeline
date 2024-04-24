@@ -16,8 +16,8 @@ module "iam" {
 
   project_name = var.project_name
   github_account_id = var.github_account_id
-  eks_environments = var.eks_environments
-  eks_roles = var.eks_roles
+  eks_namespaces = var.eks_namespaces
+  eks_cluster_roles = var.eks_cluster_roles
   eks_policy_attachments = var.eks_policy_attachments
 }
 

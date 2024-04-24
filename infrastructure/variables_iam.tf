@@ -1,29 +1,26 @@
-variable "eks_roles" {
-  type = list(object({
-    role_name = string
-    trusted_entities = object({
-      Version = string,
-      Statement = list(object({
-        Action = list(string),
-        Effect = string,
-        Principal = map(string)
-      }))
-    })
-  }))
-  description = "List of roles in EKS"
-}
-
-variable "eks_policy_attachments" {
-  type = list(map(string))
-  description = "List of policy attachments in EKS"
-}
-
 variable "github_account_id" {
   type = string
   description = "Github Actions account's ID"
 }
 
-variable "eks_environments" {
+variable "eks_namespaces" {
   type = list(string)
   description = "List of namespaces in EKS"
+}
+
+variable "eks_cluster_roles" {
+  type = map(object({
+    Version = string,
+    Statement = list(object({
+      Action = list(string),
+      Effect = string,
+      Principal = map(string)
+    }))
+  }))
+  description = "Map of EKS cluster roles (name, trusted entities)"
+}
+
+variable "eks_policy_attachments" {
+  type = list(map(string))
+  description = "List of EKS policy attachments"
 }

@@ -1,24 +1,14 @@
-# output "cluster_role" {
-#   value = aws_iam_role.cluster-role.arn
-#   description = "ARN of EKS cluster role"
-# }
-# output "nodegroup_role" {
-#   value = aws_iam_role.nodegroup-role.arn
-#   description = "ARN of EKS nodegroup role"
-# }
-# output "pod_role" {
-#   value = aws_iam_role.pod-role.arn
-#   description = "ARN of EKS pod role"
-# }
-output "admins_role" {
-  value = aws_iam_role.admins-role[*].arn
-  description = "ARN of EKS admins role"
+output "eks_cluster_roles" {
+  value = { for role in aws_iam_role.eks-cluster-roles: role.tags.role => role.arn }
+  description = "Map of EKS cluster role (name, arn)"
 }
-output "eks_roles" {
-  value = aws_iam_role.eks-roles[*].arn
-  description = "ARN of EKS role"
+
+output "eks_masters_role" {
+  value = { for role in aws_iam_role.eks-masters-role: role.tags.namespace => role.arn }
+  description = "Map of EKS masters role (namespace, ARN)"
 }
+
 output "attachments_role" {
-  value = aws_iam_role_policy_attachment.eks-policy-attachment[*]
-  description = "testing"
+  value = aws_iam_role_policy_attachment.eks-policy-attachments[*]
+  description = "List of EKS policy attachments"
 }

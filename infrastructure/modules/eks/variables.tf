@@ -1,6 +1,16 @@
-variable "cluster_name" {
+variable "project_name" {
   type = string
-  description = "EKS Cluster name"
+  description = "PROJECT's NAME"
+}
+
+variable "eks_cluster_roles" {
+  type = map(string)
+  description = "Map of EKS cluster role (name, arn)"
+}
+
+variable "eks_masters_role" {
+  type = map(string)
+  description = "Map of EKS masters role (namespace, ARN)"
 }
 
 variable "k8s_version" {
