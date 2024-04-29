@@ -83,8 +83,8 @@ jobs:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform init > .nothing
-          terraform output > infra_outputs_file
-          if  grep 'No outputs found' infra_outputs_file;then
+          terraform output > infra_outputs_file 2>.err
+          if grep 'No outputs found' infra_outputs_file;then
           cluster_built=false
           echo "infra not built"
           else
