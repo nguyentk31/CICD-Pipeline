@@ -125,7 +125,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = ``
+            var output = ``
             if (${{ steps.get-output.outputs.cluster_built=='true' }}) {
               output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
               #### Summary: \`${{ steps.plan.outputs.summary }}\``;
