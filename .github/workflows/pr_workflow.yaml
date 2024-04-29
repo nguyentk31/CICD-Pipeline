@@ -134,6 +134,8 @@ jobs:
           elif grep -qE "[^|\s]$chart_path/" <<< "$paths";then
           echo "chart_version = \"changed\"" >> terraform.tfvars
           echo "chart_version will change"
+          else
+          echo "image and chart not change"
           fi
           terraform init > .nothing
           terraform plan > plan_output

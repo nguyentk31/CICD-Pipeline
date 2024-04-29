@@ -1,1 +1,0 @@
-vpc_id_diff = vpc-03d16a2c9ba130543
