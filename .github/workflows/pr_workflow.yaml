@@ -99,6 +99,7 @@ jobs:
           fi
           else
           echo "output error."
+          cat infra_outputs_file
           echo "cluster_built=false" >> $GITHUB_ENV
           echo "infra not built"
           fi
@@ -126,8 +127,12 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
-            #### Summary: \`${{ steps.plan.outputs.summary }}\``;
+            if (steps.get-output.outputs.cluster_built) {
+              const output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
+              #### Summary: \`${{ steps.plan.outputs.summary }}\``;
+            } else {
+              const output = `### Cluster has not been built`
+            }
             github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
