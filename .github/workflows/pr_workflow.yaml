@@ -210,7 +210,7 @@ jobs:
 
       - name: Load Docker image to kind cluster
         run: |
-          kind load docker-image tmp:tmp 
+          kind load docker-image tmp:tmp --name chart-testing
 
       - name: Run chart-testing (install)
         if: steps.list-changed.outputs.changed == 'true'
