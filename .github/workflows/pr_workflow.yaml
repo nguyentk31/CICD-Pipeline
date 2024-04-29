@@ -110,9 +110,10 @@ jobs:
           
           terraform init
           infra_outputs=$(terraform output)
-          echo $infra_outputs
+          echo "INFRA_OUTPUT=$infra_outputs"
+          echo $infra_outputs > infra_outputs_file
 
-          if  grep 'No outputs found' infra_outputs;then
+          if  grep 'No outputs found' infra_outputs_file;then
           $cluster_built=false
           echo "infra_outputs=$infra_outputs" >> $GITHUB_ENV
           else
@@ -131,7 +132,7 @@ jobs:
           echo $infra_outputs > terraform.tfvars
 
           en_type=$(file -i terraform.tfvars | sed -n 's/.*charset=\(.*$\)/\1/p')
-          echo $en_type
+          echo "ENCODE_TYPE: $en_type"
 
           if [ en_type != 'UTF-8'];then
           echo "not UTF-8\nConverting..."
