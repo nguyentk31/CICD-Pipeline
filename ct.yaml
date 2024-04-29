@@ -1,2 +1,7 @@
 chart-dirs:
   - test_app/
+
+charts:
+  - chart
+
+validate-maintainers: false
