@@ -21,7 +21,7 @@ resource "aws_vpc" "uit" {
   enable_dns_support   = true
 
   tags = {
-    Name = " ${vpc_id}-Nothing"
+    Name = " ${var.vpc_id}-Nothing"
   }
 }
 
