@@ -49,9 +49,9 @@ resource "helm_release" "aws-lbc-chart" {
 
 # Using helm to install app chart after pushed to ECR
 resource "helm_release" "app-chart" {
-  name       = var.release_name
+  name       = "my-application"
   repository = "oci://${split("/", var.chart_ecr_url)[0]}"
-  chart      = var.chart_name
+  chart      = split("/", var.chart_ecr_url)[1]
   version    = "0.1.1"
 
   set {
@@ -61,12 +61,7 @@ resource "helm_release" "app-chart" {
 
   set {
     name  = "image.tag"
-    value = var.img_tag
-  }
-
-  set {
-    name  = "fullnameOverride"
-    value = var.release_name
+    value = var.image_tag
   }
 
   set {
