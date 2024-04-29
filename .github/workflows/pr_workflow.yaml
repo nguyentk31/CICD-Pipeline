@@ -25,14 +25,14 @@ jobs:
       - name: Get changed files
         id: changes
         run: |
-          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_OUTPUT
+          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_ENV
 
       - name: Determine triggering path and sonar project key
         id: determine_path
         shell: bash
         run: |
           # Show paths
-          echo "${{ steps.changes.outputs.files }}"
+          echo $files
     
 
   Plan-infrastructure:
