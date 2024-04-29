@@ -9,73 +9,13 @@ on:
    
 env:
   TF_CLOUD_ORGANIZATION: DACN
+  TF_CLOUD_PROJECT: UIT
   branch: ${{ github.base_ref }}
+  environment: ${{ github.base_ref == 'main' && 'prod' || 'dev' }} 
 
 jobs:
-  # Plan-infrastructure:
-  #   name: "Terraform plan for infrastructure"
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: read
-  #     pull-requests: write
-  #   defaults:
-  #     run:
-  #       working-directory: "./infrastructure/"
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4.1.1
-
-  #     - name: Setup Terraform with specified version on the runner
-  #       uses: hashicorp/setup-terraform@v3
-  #       with:
-  #         cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      
-  #     - name: Setup environment
-  #       run: |
-  #         if [[ $branch == "main" ]]; then
-  #         project="prod"
-  #         else
-  #         project="dev"
-  #         fi
-
-  #         args="-var-file=./environments/$project/terraform.tfvars"
-
-  #         echo "TF_CLI_ARGS_plan=$args" >> $GITHUB_ENV
-  #         echo "TF_WORKSPACE=infrastructure" >> $GITHUB_ENV
-  #         echo "TF_CLOUD_PROJECT=$project" >> $GITHUB_ENV
-    
-  #     - name: Terraform Init
-  #       run: terraform init
-
-  #     - name: Terraform Plan
-  #       id: plan
-  #       run: |
-  #         terraform plan -no-color > output
-  #         url=$(grep '^To view this run in a browser, visit:' -A1 output | grep -v '^To view this run in a browser, visit:' | tr -d '\012\015')
-  #         sm=$(grep -E '^(Plan:|No changes.)' output | tr -d '\012\015')
-
-  #         echo "run_link=$url" >> $GITHUB_OUTPUT
-  #         echo "summary=$sm" >> $GITHUB_OUTPUT
-          
-  #         echo "Run link: $url"
-  #         echo "Summary: $sm"
-          
-  #     - name: Write pull request comment
-  #       uses: actions/github-script@v7
-  #       with:
-  #         github-token: ${{ secrets.GITHUB_TOKEN }}
-  #         script: |
-  #           const output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
-  #           #### Summary: \`${{ steps.plan.outputs.summary }}\``;
-  #           github.rest.issues.createComment({
-  #           issue_number: context.issue.number,
-  #           owner: context.repo.owner,
-  #           repo: context.repo.repo,
-  #           body: output
-  #           })
-
-  Plan-application:
-    name: Planing for deployment
+  Plan-infrastructure:
+    name: "Planning for infrastructure implement"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -88,28 +28,62 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      
-      - name: Setup environment
-        run: |
-          if [[ $branch == "main" ]]; then
-          echo prod
-          else
-          echo dev
-          fi
-
-          echo "TF_CLI_ARGS=-no-color" >> $GITHUB_ENV
-          echo "TF_CLOUD_PROJECT=zthoy" >> $GITHUB_ENV
-          echo "TF_WORKSPACE=cothem" >> $GITHUB_ENV
     
+      - name: Terraform Plan
+        id: plan
+        working-directory: "./test_infra/"
+        env:
+          TF_WORKSPACE: ${{ format('infra-', env.environment) }}
+          TF_CLI_ARGS: ${{ format('-no-color -var-file=./environments/{0}/terraform.tfvars', env.environment) }}
+        run: |
+          terraform init > .nothing
+          terraform plan > output
+          url=$(grep '^To view this run in a browser, visit:' -A1 output | grep -v '^To view this run in a browser, visit:' | tr -d '\012\015')
+          sm=$(grep -E '^(Plan:|No changes.)' output | tr -d '\012\015')
+          echo "run_link=$url" >> $GITHUB_OUTPUT
+          echo "summary=$sm" >> $GITHUB_OUTPUT
+          echo "Run link: $url"
+          echo "Summary: $sm"
+          
+      - name: Write pull request comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
+            #### Summary: \`${{ steps.plan.outputs.summary }}\``;
+            github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+            })
+
+  Plan-application:
+    name: Planing for deployment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      TF_CLI_ARGS: -no-color
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
       - name: Terraform get infrastructure outputs
         id: get-output
         working-directory: ./test_infra/
         env:
-          TF_WORKSPACE: kothem
+          TF_WORKSPACE: ${{ format('infra-', env.environment) }}
         run: |
           terraform init > .nothing
           terraform output > infra_outputs_file
-
           if  grep 'No outputs found' infra_outputs_file;then
           cluster_built=false
           echo "infra not built"
@@ -120,28 +94,25 @@ jobs:
           cat infra_outputs_file >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
           fi
-
           echo "cluster_built=$cluster_built" >> $GITHUB_ENV
 
-
       - name: Terraform plan for application deployment
+        id: plan
         if: ${{ env.cluster_built }}
         working-directory: ./test_app/
-        id: plan
+        env:
+          TF_WORKSPACE: ${{ format('app-', env.environment) }}
         run: |
           echo $infra_outputs > terraform.tfvars
-          
           terraform init > .nothing
-          terraform plan > output
-          url=$(grep '^To view this run in a browser, visit:' -A1 output | grep -v '^To view this run in a browser, visit:' | tr -d '\012\015')
-          sm=$(grep -E '^(Plan:|No changes.)' output | tr -d '\012\015')
-
+          terraform plan > plan_output
+          url=$(grep '^To view this run in a browser, visit:' -A1 plan_output | grep -v '^To view this run in a browser, visit:' | tr -d '\012\015')
+          sm=$(grep -E '^(Plan:|No changes.)' plan_output | tr -d '\012\015')
           echo "run_link=$url" >> $GITHUB_OUTPUT
           echo "summary=$sm" >> $GITHUB_OUTPUT
-          
           echo "Run link: $url"
           echo "Summary: $sm"
-          
+
       - name: Write pull request comment
         if: ${{ env.cluster_built }}
         uses: actions/github-script@v7
