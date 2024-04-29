@@ -32,10 +32,7 @@ jobs:
         shell: bash
         run: |
           # Show paths
-          for path in $monitored_paths
-          do
-            echo "triggering_path is $path"
-          done
+          echo "${{ steps.changes.outputs.files }}"
     
 
   Plan-infrastructure:
