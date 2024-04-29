@@ -33,7 +33,7 @@ jobs:
         id: plan
         working-directory: "./test_infra/"
         env:
-          TF_WORKSPACE: ${{ format('infra-', env.environment) }}
+          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
           TF_CLI_ARGS: ${{ format('-no-color -var-file=./environments/{0}/terraform.tfvars', env.environment) }}
         run: |
           terraform init > .nothing
@@ -60,7 +60,7 @@ jobs:
             })
 
   Plan-application:
-    name: Planing for deployment
+    name: Planing for application deployment
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -80,7 +80,7 @@ jobs:
         id: get-output
         working-directory: ./test_infra/
         env:
-          TF_WORKSPACE: ${{ format('infra-', env.environment) }}
+          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform init > .nothing
           terraform output > infra_outputs_file
@@ -101,7 +101,7 @@ jobs:
         if: ${{ env.cluster_built }}
         working-directory: ./test_app/
         env:
-          TF_WORKSPACE: ${{ format('app-', env.environment) }}
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
           echo $infra_outputs > terraform.tfvars
           terraform init > .nothing
