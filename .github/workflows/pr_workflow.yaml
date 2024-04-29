@@ -107,14 +107,8 @@ jobs:
         env:
           TF_WORKSPACE: kothem
         run: |
-          echo $TF_CLOUD_ORGANIZATION
-          echo $TF_CLOUD_PROJECT
-          echo $TF_WORKSPACE
-          
           terraform init > .nothing
           terraform output > infra_outputs_file
-          echo "INFRA_OUTPUTS:"
-          cat infra_outputs_file
 
           if  grep 'No outputs found' infra_outputs_file;then
           cluster_built=false
@@ -135,48 +129,42 @@ jobs:
         working-directory: ./test_app/
         id: plan
         run: |
-          echo $TF_CLOUD_ORGANIZATION
-          echo $TF_CLOUD_PROJECT
-          echo $TF_WORKSPACE
-
-          echo "INFRA OUTPUT: $infra_outputs"
           echo $infra_outputs > terraform.tfvars
 
           en_type=$(file -i terraform.tfvars | sed -n 's/.*charset=\(.*$\)/\1/p')
-          echo "ENCODE_TYPE: $en_type"
 
-          if [ en_type != 'UTF-8' ];then
-          echo "not UTF-8\nConverting..."
-          iconv -f $en_type -t UTF-8 terraform.tfvars > terraform.tfvars
-          else
-          echo "it's UTF-8\nDONE"
-          fi
+          # if [ en_type != 'UTF-8' ];then
+          # echo "not UTF-8\nConverting..."
+          # iconv -f $en_type -t UTF-8 terraform.tfvars > terraform.tfvars
+          # else
+          # echo "it's UTF-8\nDONE"
+          # fi
 
-          terraform init > .nothing
-          terraform plan > output
-          url=$(grep '^To view this run in a browser, visit:' -A1 output | grep -v '^To view this run in a browser, visit:' | tr -d '\012\015')
-          sm=$(grep -E '^(Plan:|No changes.)' output | tr -d '\012\015')
+          terraform init
+          terraform plan
+          # url=$(grep '^To view this run in a browser, visit:' -A1 output | grep -v '^To view this run in a browser, visit:' | tr -d '\012\015')
+          # sm=$(grep -E '^(Plan:|No changes.)' output | tr -d '\012\015')
 
-          echo "run_link=$url" >> $GITHUB_OUTPUT
-          echo "summary=$sm" >> $GITHUB_OUTPUT
+          # echo "run_link=$url" >> $GITHUB_OUTPUT
+          # echo "summary=$sm" >> $GITHUB_OUTPUT
           
-          echo "Run link: $url"
-          echo "Summary: $sm"
+          # echo "Run link: $url"
+          # echo "Summary: $sm"
           
-      - name: Write pull request comment
-        if: ${{ env.cluster_built }}
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
-            #### Summary: \`${{ steps.plan.outputs.summary }}\``;
-            github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: output
-            })
+      # - name: Write pull request comment
+      #   if: ${{ env.cluster_built }}
+      #   uses: actions/github-script@v7
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     script: |
+      #       const output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
+      #       #### Summary: \`${{ steps.plan.outputs.summary }}\``;
+      #       github.rest.issues.createComment({
+      #       issue_number: context.issue.number,
+      #       owner: context.repo.owner,
+      #       repo: context.repo.repo,
+      #       body: output
+      #       })
   
   # Test-chart:
   #   runs-on: ubuntu-latest
