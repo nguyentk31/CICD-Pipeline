@@ -145,12 +145,12 @@ jobs:
           en_type=$(file -i terraform.tfvars | sed -n 's/.*charset=\(.*$\)/\1/p')
           echo "ENCODE_TYPE: $en_type"
 
-          if [ en_type != 'UTF-8'];then
-          echo "not UTF-8\nConverting..."
-          iconv -f $en_type -t UTF-8 terraform.tfvars > terraform.tfvars
-          else
-          echo "it's UTF-8\nDONE"
-          fi
+          # if [ en_type != 'UTF-8' ];then
+          # echo "not UTF-8\nConverting..."
+          # iconv -f $en_type -t UTF-8 terraform.tfvars > terraform.tfvars
+          # else
+          # echo "it's UTF-8\nDONE"
+          # fi
 
           terraform init > .nothing
           terraform plan > output
