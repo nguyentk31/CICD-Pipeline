@@ -114,10 +114,10 @@ jobs:
           echo $infra_outputs > infra_outputs_file
 
           if  grep 'No outputs found' infra_outputs_file;then
-          $cluster_built=false
+          cluster_built=false
           echo "infra_outputs=$infra_outputs" >> $GITHUB_ENV
           else
-          $cluster_built=true
+          cluster_built=true
           fi
 
           echo "cluster_built=$cluster_built" >> $GITHUB_ENV
