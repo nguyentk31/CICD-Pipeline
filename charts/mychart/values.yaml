@@ -5,10 +5,10 @@
 replicaCount: 3
 
 image:
-  repository: "nginx"
-  pullPolicy: Always
+  repository: "tmp"
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+  tag: "tmp"
 
 imagePullSecrets:
 nameOverride: "react"
