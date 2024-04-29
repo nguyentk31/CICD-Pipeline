@@ -131,7 +131,7 @@ jobs:
 
 
       - name: Terraform plan for application deployment
-        if: steps.get-output.outputs.cluster_built == 'true'
+        if: ${{ env.cluster_built }}
         working-directory: ./test_app/
         id: plan
         run: |
@@ -164,7 +164,7 @@ jobs:
           echo "Summary: $sm"
           
       - name: Write pull request comment
-        if: steps.get-output.outputs.cluster_built == 'true'
+        if: ${{ env.cluster_built == 'true' }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
