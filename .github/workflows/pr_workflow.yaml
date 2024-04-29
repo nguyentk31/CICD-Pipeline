@@ -99,8 +99,7 @@ jobs:
           fi
           else
           echo "output error."
-          cat infra_outputs_file
-          echo "cluster_built=false" >> $GITHUB_ENV
+          echo "cluster_built=false" >> $GITHUB_OUTPUT
           echo "infra not built"
           fi
 
