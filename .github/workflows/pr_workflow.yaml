@@ -1,4 +1,4 @@
-name: Terraform Run
+name: PR
 run-name: ${{ github.actor }} created pull request from ${{ github.head_ref }} to ${{ github.base_ref }} 🚩
 
 on:
@@ -75,6 +75,7 @@ jobs:
   #           })
 
   Plan-application:
+    name: Planing for deployment
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -108,16 +109,20 @@ jobs:
         run: |
           echo $TF_WORKSPACE
           
-          terraform init
-          infra_outputs=$(terraform output)
-          echo "INFRA_OUTPUT=$infra_outputs"
-          echo $infra_outputs > infra_outputs_file
+          terraform init >/dev/null2>&1
+          terraform output > infra_outputs_file
+          echo "INFRA_OUTPUTS:"
+          cat infra_outputs_file
 
           if  grep 'No outputs found' infra_outputs_file;then
           cluster_built=false
-          echo "infra_outputs=$infra_outputs" >> $GITHUB_ENV
+          echo 'infra_outputs<<EOF' >> $GITHUB_ENV
+          cat infra_outputs_file >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo "infra not built"
           else
           cluster_built=true
+          echo "infra built"
           fi
 
           echo "cluster_built=$cluster_built" >> $GITHUB_ENV
@@ -129,6 +134,7 @@ jobs:
         id: plan
         run: |
           echo $TF_WORKSPACE
+          echo "INFRA OUTPUT: $infra_outputs"
           echo $infra_outputs > terraform.tfvars
 
           en_type=$(file -i terraform.tfvars | sed -n 's/.*charset=\(.*$\)/\1/p')
