@@ -79,13 +79,17 @@ jobs:
 
       - name: Terraform get infrastructure outputs
         id: get-output
-        continue-on-error: true
         working-directory: ./test_infra/
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform init > .nothing
           infra_outputs_file=$(eval "terraform output")
+          if terraform output > infra_outputs_file 2>&1;then
+          echo "output error."
+          else
+          echo "output success."
+          fi
           if [ grep -qE "(could not read state version outputs: resource not found|No outputs found' infra_outputs_file)" infra_outputs_file;then
           cluster_built=false
           echo "infra not built"
