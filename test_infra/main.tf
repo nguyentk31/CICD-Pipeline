@@ -15,30 +15,17 @@ provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_iam_role" "test_role" {
-  name = "test_role"
 
-  # Terraform's "jsonencode" function converts a
-  # Terraform expression result to valid JSON syntax.
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Sid    = ""
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      },
-    ]
-  })
+resource "aws_vpc" "uit" {
+  cidr_block           = "10.31.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   tags = {
-    tag-key = "tag-value"
+    Name = " Nothing"
   }
 }
 
-output "role" {
-  value = aws_iam_role.test_role.arn
+output "vpc_id" {
+  value = aws_vpc.uit.id
 }
