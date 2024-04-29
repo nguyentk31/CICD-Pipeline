@@ -15,21 +15,21 @@ env:
   environment: ${{ github.base_ref == 'main' && 'prod' || 'dev' }} 
 
 jobs:
-  Get-changedfile:
-    name: Find paths trigger event
-    runs-on: ubuntu-latest
-    outputs:
-      files: ${{ steps.get-files.outputs.files }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4.1.1
-        with:
-          fetch-depth: 0
+  # Get-changedfile:
+  #   name: Find paths trigger event
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     files: ${{ steps.get-files.outputs.files }}
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4.1.1
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Get changed files
-        id: get-files
-        run: |
-          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_OUTPUT
+  #     - name: Get changed files
+  #       id: get-files
+  #       run: |
+  #         echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_OUTPUT
 
   # Plan-infrastructure:
   #   name: "Planning for infrastructure implement"
@@ -203,6 +203,14 @@ jobs:
       - name: Create kind cluster
         if: steps.list-changed.outputs.changed == 'true'
         uses: helm/kind-action@v1.10.0
+      
+      - name: Build Docker image
+        run: |
+          docker build -t tmp:tmp images/myimage/
+
+      - name: Load Docker image to kind cluster
+        run: |
+          kind load tmp:tmp
 
       - name: Run chart-testing (install)
         if: steps.list-changed.outputs.changed == 'true'
