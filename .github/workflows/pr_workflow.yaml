@@ -118,13 +118,13 @@ jobs:
 
           if  grep 'No outputs found' infra_outputs_file;then
           cluster_built=false
-          echo 'infra_outputs<<EOF' >> $GITHUB_ENV
-          cat infra_outputs_file >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
           echo "infra not built"
           else
           cluster_built=true
           echo "infra built"
+          echo 'infra_outputs<<EOF' >> $GITHUB_ENV
+          cat infra_outputs_file >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
           fi
 
           echo "cluster_built=$cluster_built" >> $GITHUB_ENV
@@ -164,7 +164,7 @@ jobs:
           echo "Summary: $sm"
           
       - name: Write pull request comment
-        if: ${{ env.cluster_built == 'true' }}
+        if: ${{ env.cluster_built }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
