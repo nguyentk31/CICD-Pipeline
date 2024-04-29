@@ -84,7 +84,7 @@ jobs:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform init > .nothing
-          if terraform output > infra_outputs_file 2>&1;then
+          if terraform output > infra_outputs_file 2>.err;then
           echo "output success."
           cat infra_outputs_file
           if grep -qE "(No outputs found)" infra_outputs_file;then
@@ -125,7 +125,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            if (steps.get-output.outputs.cluster_built=='true') {
+            if (${{ steps.get-output.outputs.cluster_built=='true' }}) {
               const output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
               #### Summary: \`${{ steps.plan.outputs.summary }}\``;
             } else {
