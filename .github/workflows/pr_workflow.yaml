@@ -99,7 +99,7 @@ jobs:
 
           echo "TF_CLI_ARGS=-no-color" >> $GITHUB_ENV
           echo "TF_CLOUD_PROJECT=zthoy" >> $GITHUB_ENV
-          echo "TF_CLOUD_WORKSPACE=cothem" >> $GITHUB_ENV
+          echo "TF_WORKSPACE=cothem" >> $GITHUB_ENV
     
       - name: Terraform get infrastructure outputs
         id: get-output
@@ -107,6 +107,8 @@ jobs:
         env:
           TF_WORKSPACE: kothem
         run: |
+          echo $TF_CLOUD_ORGANIZATION
+          echo $TF_CLOUD_PROJECT
           echo $TF_WORKSPACE
           
           terraform init > .nothing
@@ -129,11 +131,14 @@ jobs:
 
 
       - name: Terraform plan for application deployment
-        if: ${{ steps.get-output.outputs.cluster_built }}
+        if: ${{ steps.get-output.outputs.cluster_built == 'true' }}
         working-directory: ./test_app/
         id: plan
         run: |
+          echo $TF_CLOUD_ORGANIZATION
+          echo $TF_CLOUD_PROJECT
           echo $TF_WORKSPACE
+
           echo "INFRA OUTPUT: $infra_outputs"
           echo $infra_outputs > terraform.tfvars
 
@@ -159,7 +164,7 @@ jobs:
           echo "Summary: $sm"
           
       - name: Write pull request comment
-        if: ${{ steps.get-output.outputs.cluster_built }}
+        if: ${{ steps.get-output.outputs.cluster_built == 'true'}}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
