@@ -1,7 +1,7 @@
 # Main variables
 project     = "myprj"
 environment = "dev"
-aws_region  = "us-east-1"
+aws_region  = "us-west-2"
 
 # VPC module's variables
 vpc_config = {

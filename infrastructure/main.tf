@@ -1,54 +1,57 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project     = var.project
+      Environment = var.environment
+    }
+  }
 }
 
-# module "vpc" {
-#   source = "./modules/vpc"
+data "aws_default_tags" "uit" {}
 
-#   project_name = var.project_name
-#   vpc_cidr = "10.0.0.0/16"
-#   number_public_subnets = 2
-#   number_private_subnets = 2
-# }
+# Module VPC
+module "vpc" {
+  source = "./modules/vpc"
 
-module "iam" {
-  source = "./modules/iam"
-
-  project_name = var.project_name
-  github_account_id = var.github_account_id
-  eks_namespaces = var.eks_namespaces
-  eks_cluster_roles = var.eks_cluster_roles
-  eks_policy_attachments = var.eks_policy_attachments
+  default_tags                  = data.aws_default_tags.uit.tags
+  vpc_cidr                      = var.vpc_config.cidr_block
+  enable_dns_hostnames          = var.vpc_config.enable_dns_support
+  enable_dns_support            = var.vpc_config.enable_dns_hostnames
+  number_availability_zones     = var.vpc_config.number_availability_zones
+  number_public_subnets_per_az  = var.vpc_config.number_public_subnets_per_az
+  number_private_subnets_per_az = var.vpc_config.number_private_subnets_per_az
+  number_nat_gateways           = var.vpc_config.number_nat_gateways
 }
 
-# data "aws_ami" "ubuntu" {
-#   most_recent = true
+# Module EKS
+module "eks" {
+  source = "./modules/eks"
 
-#   filter {
-#     name   = "name"
-#     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-#   }
+  default_tags          = data.aws_default_tags.uit.tags
+  k8s_version           = var.k8s_version
+  eks_addons            = var.eks_addons
+  cluster_subnet_ids    = module.vpc.public_subnets
+  service_ipv4_cidr     = var.service_ipv4_cidr
+  node_group_subnet_ids = module.vpc.private_subnets
+}
 
-#   filter {
-#     name   = "virtualization-type"
-#     values = ["hvm"]
-#   }
+# Module LBC
+module "lbc" {
+  source = "./modules/lbc"
 
-#   owners = ["099720109477"] # Canonical
-# }
+  default_tags      = data.aws_default_tags.uit.tags
+  cluster_vpc = module.vpc.vpc_id
+}
 
-# resource "aws_instance" "web" {
-#   ami           = data.aws_ami.ubuntu.id
-#   instance_type = "t3.micro"
-#   subnet_id = module.vpc.public_subnets[0]
-#   key_name = "vockey"
+# Private ECR Repository
+resource "aws_ecr_repository" "image" {
+  name = "${var.project}-${var.environment}-image-repo"
+  force_delete = true
+}
 
-#   tags = {
-#     Name = "HelloWorld"
-#   }
-# }
-
-# resource "aws_ecr_repository" "repo" {
-#   name = "${var.project_name}-repo"
-#   force_delete = true
-# }
+resource "aws_ecr_repository" "chart" {
+  name = "${var.project}-${var.environment}-chart-repo"
+  force_delete = true
+}

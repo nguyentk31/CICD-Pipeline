@@ -9,9 +9,9 @@ terraform {
       version = "5.46.0"
     }
 
-    tls = {
-      source  = "hashicorp/tls"
-      version = "4.0.5"
+    helm = {
+      source  = "hashicorp/helm"
+      version = "2.13.1"
     }
   }
 }
