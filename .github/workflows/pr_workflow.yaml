@@ -18,6 +18,8 @@ jobs:
   Get-changedfile:
     name: Find paths trigger event
     runs-on: ubuntu-latest
+    outputs:
+      output1: ${{ steps.get-files.outputs.files }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
@@ -25,17 +27,9 @@ jobs:
           fetch-depth: 0
 
       - name: Get changed files
-        id: changes
+        id: get-files
         run: |
-          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_ENV
-
-      - name: Determine triggering path and sonar project key
-        id: determine_path
-        shell: bash
-        run: |
-          # Show paths
-          echo $files
-    
+          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs)" >> $GITHUB_OUTPUT
 
   Plan-infrastructure:
     name: "Planning for infrastructure implement"
@@ -53,7 +47,7 @@ jobs:
     
       - name: Terraform Plan
         id: plan
-        working-directory: "./test_infra/"
+        working-directory: "test_infra/"
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
           TF_CLI_ARGS: ${{ format('-no-color -var-file=./environments/{0}/terraform.tfvars', env.environment) }}
@@ -86,6 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+    needs: Get-changedfile
     env:
       TF_CLI_ARGS: -no-color
     steps:
@@ -99,7 +94,7 @@ jobs:
 
       - name: Terraform get infrastructure outputs
         id: get-output
-        working-directory: ./test_infra/
+        working-directory: test_infra/
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
@@ -113,9 +108,9 @@ jobs:
           else
           echo "cluster_built=true" >> $GITHUB_OUTPUT
           echo "infra built"
-          echo 'infra_outputs<<EOF' >> $GITHUB_ENV
-          cat infra_outputs_file >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
+          echo 'infra_outputs<<EOF' >> $GITHUB_OUTPUT
+          cat infra_outputs_file >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
           fi
           else
           echo "output error."
@@ -125,12 +120,21 @@ jobs:
 
       - name: Terraform plan for application deployment
         id: plan
-        if: steps.get-output.outputs.cluster_built=='true'
-        working-directory: ./test_app/
+        if: ${{ steps.get-output.outputs.cluster_built=='true' }}
+        working-directory: test_app/
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+          image_path: test_app/image/
+          chart_path: test_app/chart/
         run: |
-          echo $infra_outputs > terraform.tfvars
+          echo ${{ steps.get-output.outputs.infra_outputs }} > terraform.tfvars
+          if grep -qE "[^|\s]$image_path/" <<< "$paths";then
+          echo "image_tag = \"changed\"" >> terraform.tfvars
+          echo "image_tag will change"
+          elif grep -qE "[^|\s]$chart_path/" <<< "$paths";then
+          echo "chart_version = \"changed\"" >> terraform.tfvars
+          echo "chart_version will change"
+          fi
           terraform init > .nothing
           terraform plan > plan_output
           url=$(grep '^To view this run in a browser, visit:' -A1 plan_output | grep -v '^To view this run in a browser, visit:' | tr -d '\012\015')
@@ -152,6 +156,7 @@ jobs:
             } else {
               output = `### Cluster has not been built`
             }
+            console.log(output)
             github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
