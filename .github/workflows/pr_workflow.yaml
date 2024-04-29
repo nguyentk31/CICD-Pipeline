@@ -89,7 +89,7 @@ jobs:
           else
           echo "output success."
           fi
-          if [ grep -qE "(could not read state version outputs: resource not found|could not read state version outputs: resource not found)" infra_outputs_file;then
+          if grep -qE "(could not read state version outputs: resource not found|could not read state version outputs: resource not found)" infra_outputs_file;then
           cluster_built=false
           echo "infra not built"
           else
