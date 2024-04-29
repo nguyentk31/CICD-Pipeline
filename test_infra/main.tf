@@ -22,7 +22,7 @@ resource "aws_vpc" "uit" {
   enable_dns_support   = true
 
   tags = {
-    Name = " Nothing"
+    Name = " Nothing1"
   }
 }
 

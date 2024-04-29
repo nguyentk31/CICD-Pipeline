@@ -56,19 +56,13 @@ variable "alb_sg" {
 }
 
 # Application's variables
-variable "release_name" {
-  type        = string
-  default     = "my-application"
-  description = "Helm release name"
-}
-
-variable "chart_name" {
+variable "chart_version" {
   type        = string
   default     = "my-application"
   description = "Helm chart name"
 }
 
-variable "img_tag" {
+variable "image_tag" {
   type        = string
   description = "Application image's tag"
 }
