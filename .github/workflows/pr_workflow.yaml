@@ -127,8 +127,7 @@ jobs:
           image_path: test_app/image/
           chart_path: test_app/chart/
         run: |
-          infra_outputs=${{ steps.get-output.outputs.infra_outputs }}
-          echo $infra_outputs > terraform.tfvars
+          echo "${{ steps.get-output.outputs.infra_outputs }}" > terraform.tfvars
           if grep -qE "[^|\s]$image_path/" <<< "$paths";then
           echo "image_tag = \"changed\"" >> terraform.tfvars
           echo "image_tag will change"

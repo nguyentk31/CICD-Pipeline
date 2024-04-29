@@ -21,10 +21,14 @@ resource "aws_vpc" "uit" {
   enable_dns_support   = true
 
   tags = {
-    Name = " ${var.vpc_id_diff}-Nothing1"
+    Name = " ${var.vpc_id}-Nothing1"
   }
 }
 
-variable "vpc_id_diff" {
+variable "vpc_id" {
+  type = string
+}
+
+variable "vpc_cidr" {
   type = string
 }
