@@ -26,6 +26,10 @@ resource "aws_vpc" "uit" {
   }
 }
 
-output "vpc_id" {
+variable "Name" {
+  type = string
+}
+
+output "vpc_id_diff" {
   value = aws_vpc.uit.id
 }
