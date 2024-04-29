@@ -1,0 +1,78 @@
+### SET ENV
+$env:TF_CLOUD_ORGANIZATION=""
+$env:TF_WORKSPACE=""
+
+### Get output
+terraform output -raw aws_region
+terraform output -raw cluster_name
+terraform output -raw cluster_endpoint
+terraform output -raw cluster_ca
+terraform output -raw image_ecr_url
+terraform output -raw chart_ecr_url
+terraform output -raw lbc_sa
+terraform output -raw lbc_namespace
+# terraform output -raw lbc_role
+terraform output -raw alb_sg
+
+### Set variables
+$env:TF_VAR_aws_region = "us-east-1"
+$env:TF_VAR_cluster_name = "myprj-dev-EKSCluster"
+$env:TF_VAR_cluster_endpoint = "https://410C060DDB4D12BBC290CAF649BFBEF2.gr7.us-east-1.eks.amazonaws.com"
+$env:TF_VAR_cluster_ca = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJRFllTUxaSk1CYkl3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TkRBME1qZ3hPREEyTkRoYUZ3MHpOREEwTWpZeE9ERXhORGhhTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUUN5dFVzVEdMUW1ITFA4OGlsY2hhazlMRjRaaHNJTHNvQjJrTGNOa2w2TWJJUkY5dXlkbm94S0N3QkQKNStscytBc3BIWDdRalFXSE44UzRyaDBmVE4rUmRKanJjY1ZPWFplY3liT1pNTnhtNkRSRDJKYmtPOWhMRmV4KwpHVTJIYmZwdUFXRG80Vk5LWEhJMDFKN2JDbjVPY0F0cmtrWWNBSEVhSnpWUytLaTFpS0RlU3Y5NDJyRVNaMnBpClZXcGVMNVlWVVpZMy9Wbm4wdWxPQnY3TEh3emFvZW9NcWxUaWE4VGRzMXRPbmxBVU9LU0M1MXZEOUZNQTI5emIKK1FpcE43TnAzMm8wZVA2emJJa1B5QWhqZ1JYL1VHZW9GTHZFVFc0eFkxUXczYjRxTDFiQTVyR2pIZitIajhRUAp2UlBZUmRIY0dpdU5IaFBDZGV2MGphaHBpbkpaQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJSSGt3YXdEdDBhSFhBeUJQdk1DUTJJU1ZVNjNUQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQlJwbXdsN1JiUQpkc3hsNWNJcTRnUG93RlFaTlpUZEgza2RiTGhLL1NIUHI4S0lMSkpxTXlULy94amR6N3RzMmRoSy93ck5jQyt1CmlsUHZOa3dCMkdTUnFrcmNVT0xnMDFLbjNtQnFoOGhjQlFjaFpGSU9IUGlwVzdld2FkajZ3ZGF6dXZEdEpvbi8KT0NLNWxSbmMzRUJQeUFKZndoZS8wN1o0YTI0WHgyM3V3OHVjelh3U09SczdFWW5CMzBscjIwR1phekJhdzR5NQpkM3BpZ1VOSW5xcU83eE5IdUw0ckpNbTRBTXpEQ1JqMmljWWg5OTJlY1VVVkQ0cE5PZXN3MmYrLzZScWRjMW9TClc2SFdVQUpQRzI2OHpseXF5U2EwL0hxOXhkck14Zyt4N3pXRVg3ZHdUT0lEK1NGOWlOUm53RlB1SXZIamIvdEYKZENxQm04TTJ3clRQCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+$env:TF_VAR_image_ecr_url = "637423337672.dkr.ecr.us-east-1.amazonaws.com/myprj-dev-image-repo"
+$env:TF_VAR_chart_ecr_url = "637423337672.dkr.ecr.us-east-1.amazonaws.com/myprj-dev-chart-repo"
+$env:TF_VAR_lbc_sa = "aws-load-balancer-controller"
+$env:TF_VAR_lbc_namespace = "kube-system"
+$env:TF_VAR_lbc_role = "arn:aws:iam::637423337672:role/LabRole"
+$env:TF_VAR_alb_sg = "sg-0df4f44980f1f2af1"
+$env:TF_VAR_release_name = "myapplication"
+$env:TF_VAR_chart_name = "myprj-dev-chart-repo"
+$env:TF_VAR_img_tag = "333"
+
+# Rename helm chart (bash) chart_ecr_url
+chart_name="myprj-dev-chart-repo"
+sed -i "s/^name:.*/name: $chart_name/" mychart/Chart.yaml
+
+# Login ECR, push/list/delete image
+$region=""
+$profile=""
+$account_id=""
+$image_repo=""
+$chart_repo=""
+$image_tag=""
+aws ecr get-login-password --region $region --profile $profile | docker login `
+     --username AWS --password-stdin "$account_id.dkr.ecr.us-east-1.amazonaws.com"
+
+docker tag myrepo:1.0.0 ${image_repo}:$image_tag
+docker push ${image_repo}:$image_tag
+docker rmi ${image_repo}:$image_tag
+
+
+$repo_name="myprj-dev-chart-repo"
+aws ecr list-images `
+     --repository-name $repo_name `
+     --profile $profile
+
+aws ecr batch-delete-image `
+     --repository-name $repo_name `
+     --image-ids imageDigest=sha256:cd28f6e29c5b6589bd9ba8fe6fe35af99dfba0a3fbf929ac95b039e9482f94d7 `
+     --region $region --profile $profile
+
+# Login ECR, push/list/delete chart
+$chart_repo="637423337672.dkr.ecr.us-east-1.amazonaws.com/myprj-dev-chart-repo"
+aws ecr get-login-password --region $region --profile $profile | helm registry login `
+     --username AWS --password-stdin "$account_id.dkr.ecr.us-east-1.amazonaws.com"
+
+helm package mychart
+
+helm push myprj-dev-chart-repo-0.1.1.tgz oci://${account_id}.dkr.ecr.us-east-1.amazonaws.com/
+
+# Kubectl config and deploy app
+$cluster_name="myprj-dev-EKSCluster"
+aws eks update-kubeconfig --region $region --name $cluster_name --profile $profile
+
+helm install app oci://$chart_repo `
+     --version 0.1.1 `
+     --set image.repository $image_repo `
+     --set image.tag $image_tag `
+     --set ingress.annotations."alb\.ingress\.kubernetes\.io/security-groups"=sg-123

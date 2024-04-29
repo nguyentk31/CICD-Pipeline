@@ -1,0 +1,243 @@
+name: PR
+run-name: ${{ github.actor }} created pull request from ${{ github.head_ref }} to ${{ github.base_ref }} 🚩
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+   
+env:
+  TF_CLOUD_ORGANIZATION: DACN
+  branch: ${{ github.base_ref }}
+
+jobs:
+  # Plan-infrastructure:
+  #   name: "Terraform plan for infrastructure"
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     pull-requests: write
+  #   defaults:
+  #     run:
+  #       working-directory: "./infrastructure/"
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4.1.1
+
+  #     - name: Setup Terraform with specified version on the runner
+  #       uses: hashicorp/setup-terraform@v3
+  #       with:
+  #         cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      
+  #     - name: Setup environment
+  #       run: |
+  #         if [[ $branch == "main" ]]; then
+  #         project="prod"
+  #         else
+  #         project="dev"
+  #         fi
+
+  #         args="-var-file=./environments/$project/terraform.tfvars"
+
+  #         echo "TF_CLI_ARGS_plan=$args" >> $GITHUB_ENV
+  #         echo "TF_WORKSPACE=infrastructure" >> $GITHUB_ENV
+  #         echo "TF_CLOUD_PROJECT=$project" >> $GITHUB_ENV
+    
+  #     - name: Terraform Init
+  #       run: terraform init
+
+  #     - name: Terraform Plan
+  #       id: plan
+  #       run: |
+  #         terraform plan -no-color > output
+  #         url=$(grep '^To view this run in a browser, visit:' -A1 output | grep -v '^To view this run in a browser, visit:' | tr -d '\012\015')
+  #         sm=$(grep -E '^(Plan:|No changes.)' output | tr -d '\012\015')
+
+  #         echo "run_link=$url" >> $GITHUB_OUTPUT
+  #         echo "summary=$sm" >> $GITHUB_OUTPUT
+          
+  #         echo "Run link: $url"
+  #         echo "Summary: $sm"
+          
+  #     - name: Write pull request comment
+  #       uses: actions/github-script@v7
+  #       with:
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+  #         script: |
+  #           const output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
+  #           #### Summary: \`${{ steps.plan.outputs.summary }}\``;
+  #           github.rest.issues.createComment({
+  #           issue_number: context.issue.number,
+  #           owner: context.repo.owner,
+  #           repo: context.repo.repo,
+  #           body: output
+  #           })
+
+  Plan-application:
+    name: Planing for deployment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      
+      - name: Setup environment
+        run: |
+          if [[ $branch == "main" ]]; then
+          echo prod
+          else
+          echo dev
+          fi
+
+          echo "TF_CLI_ARGS=-no-color" >> $GITHUB_ENV
+          echo "TF_CLOUD_PROJECT=zthoy" >> $GITHUB_ENV
+          echo "TF_CLOUD_WORKSPACE=cothem" >> $GITHUB_ENV
+    
+      - name: Terraform get infrastructure outputs
+        id: get-output
+        working-directory: ./test_infra/
+        env:
+          TF_WORKSPACE: kothem
+        run: |
+          echo $TF_WORKSPACE
+          
+          terraform init > .nothing
+          terraform output > infra_outputs_file
+          echo "INFRA_OUTPUTS:"
+          cat infra_outputs_file
+
+          if  grep 'No outputs found' infra_outputs_file;then
+          cluster_built=false
+          echo 'infra_outputs<<EOF' >> $GITHUB_ENV
+          cat infra_outputs_file >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo "infra not built"
+          else
+          cluster_built=true
+          echo "infra built"
+          fi
+
+          echo "cluster_built=$cluster_built" >> $GITHUB_ENV
+
+
+      - name: Terraform plan for application deployment
+        if: ${{ steps.get-output.outputs.cluster_built }}
+        working-directory: ./test_app/
+        id: plan
+        run: |
+          echo $TF_WORKSPACE
+          echo "INFRA OUTPUT: $infra_outputs"
+          echo $infra_outputs > terraform.tfvars
+
+          en_type=$(file -i terraform.tfvars | sed -n 's/.*charset=\(.*$\)/\1/p')
+          echo "ENCODE_TYPE: $en_type"
+
+          if [ en_type != 'UTF-8'];then
+          echo "not UTF-8\nConverting..."
+          iconv -f $en_type -t UTF-8 terraform.tfvars > terraform.tfvars
+          else
+          echo "it's UTF-8\nDONE"
+          fi
+
+          terraform init > .nothing
+          terraform plan > output
+          url=$(grep '^To view this run in a browser, visit:' -A1 output | grep -v '^To view this run in a browser, visit:' | tr -d '\012\015')
+          sm=$(grep -E '^(Plan:|No changes.)' output | tr -d '\012\015')
+
+          echo "run_link=$url" >> $GITHUB_OUTPUT
+          echo "summary=$sm" >> $GITHUB_OUTPUT
+          
+          echo "Run link: $url"
+          echo "Summary: $sm"
+          
+      - name: Write pull request comment
+        if: ${{ steps.get-output.outputs.cluster_built }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Run-link: ${{ steps.plan.outputs.run_link }}
+            #### Summary: \`${{ steps.plan.outputs.summary }}\``;
+            github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+            })
+  
+  # Test-chart:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: 0
+
+  #     - name: Set up Helm
+  #       uses: azure/setup-helm@v4.2.0
+  #       with:
+  #         version: v3.14.4
+
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.x'
+  #         check-latest: true
+
+  #     - name: Set up chart-testing
+  #       uses: helm/chart-testing-action@v2.7.0
+
+  #     - name: Run chart-testing (list-changed)
+  #       id: list-changed
+  #       run: |
+  #         changed=$(ct list-changed --config ct.yaml --target-branch $branch)
+  #         if [[ -n "$changed" ]]; then
+  #           echo "changed=true" >> "$GITHUB_OUTPUT"
+  #         fi
+
+  #     - name: Run chart-testing (lint)
+  #       if: steps.list-changed.outputs.changed == 'true'
+  #       run: ct lint --config ct.yaml --target-branch $branch
+
+  #     - name: Create kind cluster
+  #       if: steps.list-changed.outputs.changed == 'true'
+  #       uses: helm/kind-action@v1.10.0
+
+  #     - name: Run chart-testing (install)
+  #       if: steps.list-changed.outputs.changed == 'true'
+  #       run: ct install --config ct.yaml --target-branch $branch
+    
+  # Test-image:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     pull-requests: write
+  #   defaults:
+  #     run:
+  #       working-directory: "./application/"
+
+  #   strategy:
+  #     matrix:
+  #       node: [ 16, 18, 20 ]
+  #   name: Node ${{ matrix.node }} sample
+
+  #   steps:
+  #     - uses: actions/checkout@v4.1.1
+
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: ${{ matrix.node }} 
+
+  #     - name: Install dependencies
+  #       run: npm ci
+
+  #     - name: Unit test
+  #       run: npm run test

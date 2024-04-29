@@ -1,28 +1,50 @@
-# Outputs of VPC
-# output "vpc" {
-#   value = module.vpc.aws_vpc.vpc.id
-#   description = "VPC id"
-# }
-# output "public_subnets" {
-#   value = module.vpc.aws_subnet.public-subnets[*].id
-#   description = "Public subnets id"
-# }
+/*
+*/
+# Main
+output "aws_region" {
+  value       = var.aws_region
+  description = "AWS Region"
+}
 
-# output "private_subnets" {
-#   value = module.vpc.aws_subnet.private-subnets[*].id
-#   description = "Private subnets id"
-# }
+# Outputs of EKS module
+output "cluster_name" {
+  value       = module.eks.cluster_name
+  description = "EKS Cluster's name"
+}
 
-# Outputs of IAM
-# output "cluster_role" {
-#   value = module.iam.cluster_role
-#   description = "ARN of EKS cluster role"
-# }
-# output "nodegroup_role" {
-#   value = module.iam.nodegroup_role
-#   description = "ARN of EKS nodegroup role"
-# }
-# output "pod_role" {
-#   value = module.iam.pod_role
-#   description = "ARN of EKS pod role"
-# }
+output "cluster_endpoint" {
+  value       = module.eks.cluster_endpoint
+  description = "EKS Cluster's endpoint"
+}
+
+output "cluster_ca" {
+  value       = module.eks.cluster_ca
+  description = "EKS Cluster's CA Certificate"
+}
+
+# Outputs of ECR Repository
+output "image_ecr_url" {
+  value       = aws_ecr_repository.image.repository_url
+  description = "Image ECR's URL"
+}
+
+output "chart_ecr_url" {
+  value       = aws_ecr_repository.chart.repository_url
+  description = "Chart ECR's URL"
+}
+
+# Outputs of LBC module
+output "lbc_sa" {
+  value       = var.lbc_sa
+  description = "Service Account's Name for LBC"
+}
+
+output "lbc_namespace" {
+  value       = var.lbc_namespace
+  description = "EKS Namespace to deploy LBC"
+}
+
+output "alb_sg" {
+  value = module.lbc.alb_sg
+  description = "ALB's security group ID"
+}
