@@ -1,2 +1,4 @@
-chart-dirs:
-  - application/chart
+charts:
+  - charts/mychart
+
+validate-maintainers: false
