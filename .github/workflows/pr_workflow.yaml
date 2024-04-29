@@ -86,12 +86,8 @@ jobs:
           terraform init > .nothing
           if terraform output > infra_outputs_file 2>&1;then
           echo "output success."
-          else
-          echo "output error."
-          fi
-          
           cat infra_outputs_file
-          if grep -qE "(resource not found|No outputs found)" infra_outputs_file;then
+          if grep -qE "(No outputs found)" infra_outputs_file;then
           echo "cluster_built=false" >> $GITHUB_ENV
           echo "infra not built"
           else
@@ -100,6 +96,11 @@ jobs:
           echo 'infra_outputs<<EOF' >> $GITHUB_ENV
           cat infra_outputs_file >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
+          fi
+          else
+          echo "output error."
+          echo "cluster_built=false" >> $GITHUB_ENV
+          echo "infra not built"
           fi
 
       - name: Terraform plan for application deployment
