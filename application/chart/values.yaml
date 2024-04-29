@@ -11,8 +11,8 @@ image:
   tag: ""
 
 imagePullSecrets:
-nameOverride: "app"
-fullnameOverride: "react-app"
+nameOverride: "React"
+fullnameOverride: ""
 
 serviceAccount:
   # Specifies whether a service account should be created

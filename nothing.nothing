@@ -25,9 +25,8 @@ $env:TF_VAR_lbc_sa = "aws-load-balancer-controller"
 $env:TF_VAR_lbc_namespace = "kube-system"
 $env:TF_VAR_lbc_role = "arn:aws:iam::637423337672:role/LabRole"
 $env:TF_VAR_alb_sg = "sg-0df4f44980f1f2af1"
-$env:TF_VAR_release_name = "myapplication"
-$env:TF_VAR_chart_name = "myprj-dev-chart-repo"
-$env:TF_VAR_img_tag = "333"
+$env:TF_VAR_chart_version = "myprj-dev-chart-repo"
+$env:TF_VAR_image_tag = "333"
 
 # Rename helm chart (bash) chart_ecr_url
 chart_name="myprj-dev-chart-repo"
