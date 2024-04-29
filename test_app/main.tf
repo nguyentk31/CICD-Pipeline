@@ -28,3 +28,4 @@ resource "aws_vpc" "uit" {
 variable "vpc_id_diff" {
   type = string
 }
+

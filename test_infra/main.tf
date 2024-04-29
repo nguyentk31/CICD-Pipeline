@@ -30,6 +30,10 @@ variable "Name" {
   type = string
 }
 
-output "vpc_id_diff" {
+output "vpc_id" {
   value = aws_vpc.uit.id
+}
+
+output "vpc_cidr" {
+  value = aws_vpc.uit.cidr_block
 }
