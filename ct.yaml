@@ -1,4 +1,4 @@
 charts:
-  - charts/mychart
+  - test_app/charts/mychart
 
 validate-maintainers: false
