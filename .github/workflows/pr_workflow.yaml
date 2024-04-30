@@ -32,6 +32,7 @@ jobs:
         run: |
           # Using git diff to compare sha between the current commit and the base branch of pull request
           echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs -I '$' echo "$PWD/$" | xargs)" >> $GITHUB_OUTPUT
+          echo "${{ github.workspace }}"
 
   # Plan for infrastructure implement
   infra_plan:
@@ -101,6 +102,7 @@ jobs:
           # set +e to continue even if exit code != 0
           set +e
           echo "$PWD"
+          echo "${{ github.workspace }}"
           echo '${{ needs.changed_files.outputs.files }}'
           terraform init > .nothing
           terraform output > infra_outputs_file 2>.err
@@ -129,6 +131,7 @@ jobs:
           # set +e to continue even if exit code != 0
           set +e
           echo "$PWD"
+          echo "${{ github.workspace }}"
           echo '${{ needs.changed_files.outputs.files }}'
           # Write outputs get from step above that match application variable
           infra_outputs='${{ steps.get-outputs.outputs.infra_outputs }}'
