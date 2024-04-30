@@ -172,9 +172,6 @@ jobs:
   chart_testing:
     name: Deploy chart to kind cluster
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: test_app
     steps:
       - name: Checkout
         uses: actions/checkout@v3
