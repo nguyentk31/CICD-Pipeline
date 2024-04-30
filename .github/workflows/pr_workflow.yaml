@@ -128,8 +128,14 @@ jobs:
           # Write outputs get from step above that match application variable
           infra_outputs='${{ steps.get-outputs.outputs.infra_outputs }}'
           vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
+          # Debug
+          echo "infra ouputs: $infra_outputs"
+          echo "vars: $vars"
           for var in $vars; do
-            sed -nE "s/(^|.*;)($var = .*?);/\2/p" <<< $infra_outputs >> terraform.tfvars
+            echo "var: $var"
+            sed -nE "s/(^|.*;)($var = .*?)[;$]/\2/p" <<< $infra_outputs >> terraform.tfvars
+            echo "var file:"
+            cat terraform.tfvars
           done
 
           # Read app deployment ouputs from previous statet if it exits
