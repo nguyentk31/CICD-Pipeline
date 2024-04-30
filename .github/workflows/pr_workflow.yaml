@@ -113,9 +113,9 @@ jobs:
             echo "infra has been built"
           fi
 
-      # Run terrraform plan for application deployment
-      - name: Run terrraform plan
-        id: plan
+      # Write variables for plan in next step
+      - name: Write variable
+        id: write-var
         # Only run if cluster has been built
         if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
         working-directory: test_app/
@@ -136,6 +136,7 @@ jobs:
           # Otherwise use the default value has been defined in variables.tf files
           terraform init > .nothing
           terraform output > app_outputs_file 2>.err
+
           if [ $? -ne 0 ] || grep -q "No outputs found" app_outputs_file;then
             echo "app has not been deployed"
           else
@@ -160,8 +161,17 @@ jobs:
               fi
             done
           fi
-          
+
+      # Run terrraform plan for application deployment
+      - name: Run terraform plan
+        id: plan
+        working-directory: test_app/
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform init > .nothing
           terraform plan > .plan_output
+          
           url=$(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')
           sm=$(grep -E '^(Plan:|No changes.)' .plan_output | tr -d '\012\015')
           echo "run-url=$url" >> $GITHUB_OUTPUT
@@ -259,23 +269,14 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            var output1 = ``
-            if (${{ needs.deploy_plan.outputs.cluster-built=='true' }}) {
-            output1 = `#### Plan for application deployment...
-              #### Run-url: ${{ needs.deploy_plan.outputs.run-url }}
-              #### Summary: \`${{ needs.deploy_plan.outputs.summary }}\``;
-            } else {
-              output1 = `#### Plan for application deployment...
-              ### Cluster has not been built`;
-            }
-
-            const output2 = `#### Plan for Infrastructure implement...
+            const output = `#### Plan for application deployment...
+            #### Run-url: ${{ needs.deploy_plan.outputs.run-url }}
+            #### Summary: \`${{ needs.deploy_plan.outputs.summary }}\`
+            -----------------
+            #### Plan for Infrastructure implement...
             #### Run-url: ${{ needs.infra_plan.outputs.run-url }}
             #### Summary: \`${{ needs.infra_plan.outputs.summary }}\``;
 
-            const output = `${output1}
-            -------------------------------
-            ${output2}`;
             github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
