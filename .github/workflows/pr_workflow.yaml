@@ -152,10 +152,11 @@ jobs:
                 echo "${arrs[0]} will change!"
               else
                 echo "${arrs[0]} won't change!"
-                echo "${arrs[0]} = \"$(terraform output -raw ${arrs[0]} 2>>.err)\"" >> terrafrom.tfvars
+                value="\"$(terraform output -raw ${arrs[0]} 2>>.err)\""
                 if [ $? -ne 0 ] && grep -q "Output \"${arrs[0]}\" not found" .err; then
                   echo "can't find previous ${arrs[0]}'s' value"
                 else
+                  echo "${arrs[0]} = $value" >> terrafrom.tfvars
                   echo "found previous ${arrs[0]}'s' value"
                 fi
               fi
