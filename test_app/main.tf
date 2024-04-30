@@ -21,7 +21,7 @@ resource "aws_subnet" "uit" {
 
   tags = {
     Name                     = var.subnet_name
-    iamge_tag = var.iamge_tag
+    iamge_tag = var.image_tag
     chart_version = var.chart_version
   }
 }

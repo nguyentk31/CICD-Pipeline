@@ -21,7 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:
-      # files: ${{ steps.get-files.outputs.files }}
       images_changed: ${{ steps.check.outputs.images_changed }}
       charts_changed: ${{ steps.check.outputs.charts_changed }}
     env:
@@ -157,6 +156,7 @@ jobs:
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
+          set +e
           # Read app deployment ouputs from previous statet if it exits
           # Otherwise use the default value has been defined in variables.tf files
           terraform init > .nothing
