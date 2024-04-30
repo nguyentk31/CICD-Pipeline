@@ -133,7 +133,7 @@ jobs:
           echo "vars: $vars"
           for var in $vars; do
             echo "var: $var"
-            sed -nE "s/(^|.*;)($var = )(.*?)(;|$)/\2\3/p" <<< $infra_outputs >> terraform.tfvars
+            echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
             echo "var file:"
             cat terraform.tfvars
           done
