@@ -1,5 +1,5 @@
 name: Terraform Run
-run-name: ${{ github.event.commits[0].message }} / ${{ github.event.pull_request.commits_url  }}  🚩
+run-name: ${{ github.event.commits[0].message }} / ${{ github.event.pull_request.title  }}  🚩
 
 on:
   pull_request:
