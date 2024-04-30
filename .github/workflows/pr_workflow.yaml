@@ -21,7 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:
-      files: ${{ steps.get-files.outputs.files }}
+      # files: ${{ steps.get-files.outputs.files }}
+      images_changed: ${{ steps.check.outputs.images_changed }}
+      charts_changed: ${{ steps.check.outputs.charts_changed }}
+    env:
+      images_path: images
+      charts_path: charts
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
@@ -32,6 +37,22 @@ jobs:
         run: |
           # Using git diff to compare sha between the current commit and the base branch of pull request
           echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs -I '$' echo "$PWD/$" | xargs)" >> $GITHUB_OUTPUT
+      - name: Check images/charts path
+        id: check
+        run: |
+          # Check whether images path changed
+          if grep -qE "^${{ env.images_path }}/.*?" <<< "${{ steps.get-files.outputs.files }}";then
+            echo "images_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "images_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check whether charts path changed
+          if grep -qE "^${{ env.charts_path }}/.*?" <<< "${{ steps.get-files.outputs.files }}";then
+            echo "charts_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "charts_changed=false" >> $GITHUB_OUTPUT
+          fi
 
   # Plan for infrastructure implement
   infra_plan:
@@ -113,15 +134,11 @@ jobs:
             echo "infra has been built"
           fi
 
-      # Write variables for plan in next step
-      - name: Write variable
-        id: write-var
+      # Write variables from infra outputs for plan in next step
+      - name: Write variable from infra_outputs
         # Only run if cluster has been built
         if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
         working-directory: test_app/
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-          desired_vars: image_tag;images chart_version;charts
         run: |
           # set +e to continue even if exit code != 0
           set +e
@@ -132,6 +149,14 @@ jobs:
             echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
           done
 
+      # Write variables from app outputs for plan in next step
+      - name: Write variable from app_outputs
+        # Only run if cluster has been built
+        if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
+        working-directory: test_app/
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
           # Read app deployment ouputs from previous statet if it exits
           # Otherwise use the default value has been defined in variables.tf files
           terraform init > .nothing
@@ -141,28 +166,31 @@ jobs:
             echo "app has not been deployed"
           else
             echo "app has been deployed"
-            # With each desired variabels, we split to two part (var name, file path will make that var change)
-            for var in $desired_vars; do
-              IFS=';' read -ra arrs <<< $var
-              # Compare the file path with the files that trigger workflow from the step above
-              # if it match we don't need to read the previous var's value from output because it will change
-              # but if it doesn't match we will need to read the previous var's value from outputs to assige to it
-              if grep -qE "(^|.*\s)${{ github.workspace }}/${arrs[1]}/.*? " <<< "${{ needs.changed_files.outputs.files }}";then
-                echo "${arrs[0]} will change!"
+            if [[ ${{ needs.changed_files.outputs.images_changed }} == true ]] ;then
+              echo "iamges will change!"
+            else
+              echo "iamges won't change!"
+              value="\"$(terraform output -raw image_tag 2>.err)\""
+              if [ $? -ne 0 ] && grep -q "Output \"image_tag\" not found" .err; then
+                echo "can't find previous image_tag's value"
               else
-                echo "${arrs[0]} won't change!"
-                value="\"$(terraform output -raw ${arrs[0]} 2>>.err)\""
-                echo "value found: $value"
-                if [ $? -ne 0 ] && grep -q "Output \"${arrs[0]}\" not found" .err; then
-                  echo "can't find previous ${arrs[0]}'s' value"
-                else
-                  echo "${arrs[0]} = $value" >> terraform.tfvars
-                  echo "${arrs[0]} = $value"
-                  cat terraform.tfvars
-                  echo "found previous ${arrs[0]}'s' value"
-                fi
+                echo "image_tag = $value" >> terraform.tfvars
+                echo "found previous image_tag's value"
               fi
-            done
+            fi
+
+            if [[ ${{ needs.changed_files.outputs.charts_changed }} == true ]] ;then
+              echo "charts will change!"
+            else
+              echo "charts won't change!"
+              value="\"$(terraform output -raw chart_version 2>.err)\""
+              if [ $? -ne 0 ] && grep -q "Output \"chart_version\" not found" .err; then
+                echo "can't find previous chart_version's value"
+              else
+                echo "chart_version = $value" >> terraform.tfvars
+                echo "found previous chart_version's value"
+              fi
+            fi
           fi
 
       # Run terrraform plan for application deployment
@@ -185,6 +213,8 @@ jobs:
   chart_testing:
     name: Deploy chart to kind cluster
     runs-on: ubuntu-latest
+    needs: changed_files
+    if: ${{ needs.changed_files.outputs.charts_changed=='true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -234,6 +264,8 @@ jobs:
     
   image_testing:
     runs-on: ubuntu-latest
+    needs: changed_files
+    if: ${{ needs.changed_files.outputs.images_changed=='true' }}
     defaults:
       run:
         working-directory: "images/myimage"
