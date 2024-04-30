@@ -12,7 +12,7 @@ variable "vpc_cidr" {
   default = "10.0.0.0/16"
 }
 
-variable "iamge_tag" {
+variable "image_tag" {
   type = string
   default = "latest"
 }
