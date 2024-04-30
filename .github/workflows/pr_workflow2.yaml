@@ -1,5 +1,5 @@
 name: Terraform Run
-run-name: ${{ github.event.pull_request.title  }} update at ${{ github.event.pull_request.updated_at  }}  🚩
+run-name: ${{ github.actor }} / ${{ github.event.pull_request.title  }}  🚩
 
 on:
   pull_request:
