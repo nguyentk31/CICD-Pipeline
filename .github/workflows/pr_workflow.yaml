@@ -32,7 +32,6 @@ jobs:
         run: |
           # Using git diff to compare sha between the current commit and the base branch of pull request
           echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs -I '$' echo "$PWD/$" | xargs)" >> $GITHUB_OUTPUT
-          echo "${{ github.workspace }}"
 
   # Plan for infrastructure implement
   infra_plan:
@@ -60,7 +59,6 @@ jobs:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
           TF_CLI_ARGS: ${{ format('-no-color -var-file=./environments/{0}/terraform.tfvars', env.environment) }}
         run: |
-          echo "$PWD"
           terraform init > .nothing
           terraform plan > .plan_output
 
@@ -101,9 +99,6 @@ jobs:
         run: |
           # set +e to continue even if exit code != 0
           set +e
-          echo "$PWD"
-          echo "${{ github.workspace }}"
-          echo '${{ needs.changed_files.outputs.files }}'
           terraform init > .nothing
           terraform output > infra_outputs_file 2>.err
 
@@ -130,9 +125,6 @@ jobs:
         run: |
           # set +e to continue even if exit code != 0
           set +e
-          echo "$PWD"
-          echo "${{ github.workspace }}"
-          echo '${{ needs.changed_files.outputs.files }}'
           # Write outputs get from step above that match application variable
           infra_outputs='${{ steps.get-outputs.outputs.infra_outputs }}'
           vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
@@ -155,7 +147,7 @@ jobs:
               # Compare the file path with the files that trigger workflow from the step above
               # if it match we don't need to read the previous var's value from output because it will change
               # but if it doesn't match we will need to read the previous var's value from outputs to assige to it
-              if grep -qE "(^|.*\s)$PWD/${arrs[1]}/.*? " <<< "${{ needs.changed_files.outputs.files }}";then
+              if grep -qE "(^|.*\s)${{ github.workspace }}/${arrs[1]}/.*? " <<< "${{ needs.changed_files.outputs.files }}";then
                 echo "${arrs[0]} will change!"
               else
                 echo "${arrs[0]} won't change!"
@@ -180,9 +172,6 @@ jobs:
   chart_testing:
     name: Deploy chart to kind cluster
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: test_app
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -205,7 +194,6 @@ jobs:
       - name: Run chart-testing (list-changed)
         id: list-changed
         run: |
-          echo "$PWD"
           changed=$(ct list-changed --config ct.yaml --target-branch $branch)
           if [[ -n "$changed" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -213,9 +201,7 @@ jobs:
 
       - name: Run chart-testing (lint)
         if: steps.list-changed.outputs.changed == 'true'
-        run: |
-          echo "$PWD"
-          ct lint --config ct.yaml --target-branch $branch
+        run: ct lint --config ct.yaml --target-branch $branch
 
       - name: Create kind cluster
         if: steps.list-changed.outputs.changed == 'true'
@@ -223,21 +209,15 @@ jobs:
       
       - name: Build Docker image
         if: steps.list-changed.outputs.changed == 'true'
-        run: |
-          echo "$PWD"
-          docker build -t tmp:tmp images/myimage/
+        run: docker build -t tmp:tmp images/myimage/
 
       - name: Load Docker image to kind cluster
         if: steps.list-changed.outputs.changed == 'true'
-        run: |
-          echo "$PWD"
-          kind load docker-image tmp:tmp --name chart-testing
+        run: kind load docker-image tmp:tmp --name chart-testing
 
       - name: Run chart-testing (install)
         if: steps.list-changed.outputs.changed == 'true'
-        run: |
-          echo "$PWD"
-          ct install --config ct.yaml --target-branch $branch
+        run: ct install --config ct.yaml --target-branch $branch
     
   image_testing:
     runs-on: ubuntu-latest
@@ -260,14 +240,10 @@ jobs:
           node-version: ${{ matrix.node }} 
 
       - name: Install dependencies
-        run: |
-          echo "$PWD"
-          npm ci
+        run: npm ci
 
       - name: Unit test
-        run: |
-          echo "$PWD"
-          npm run test
+        run: npm run test
 
   # Write comment to pull_request about the result of testing and planning jobs
   comment_writing:
