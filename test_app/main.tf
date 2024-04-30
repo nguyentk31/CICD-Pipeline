@@ -26,37 +26,4 @@ resource "aws_subnet" "uit" {
   }
 }
 
-variable "subnet_name" {
-  type = string
-}
-
-variable "vpc_id" {
-  type = string
-  default = "nothing"
-}
-
-variable "vpc_cidr" {
-  type = string
-  default = "10.0.0.0/16"
-}
-
-variable "iamge_tag" {
-  type = string
-  default = "latest"
-}
-variable "chart_version" {
-  type = string
-  default = "latest"
-}
-
-output "iamge_tag" {
-  value = aws_subnet.uit.tags.iamge_tag
-}
-output "chart_version" {
-  value = aws_subnet.uit.tags.chart_version
-}
-
-output "subnet_id" {
-  value = aws_subnet.uit.id
-}
 
