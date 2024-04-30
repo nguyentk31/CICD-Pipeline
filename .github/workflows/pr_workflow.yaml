@@ -21,7 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:
-      files: ${{ steps.get-files.outputs.files }}
+      images_changed: ${{ steps.check.outputs.images_changed }}
+      charts_changed: ${{ steps.check.outputs.charts_changed }}
+    env:
+      images_path: images
+      charts_path: charts
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
@@ -32,6 +36,22 @@ jobs:
         run: |
           # Using git diff to compare sha between the current commit and the base branch of pull request
           echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs -I '$' echo "$PWD/$" | xargs)" >> $GITHUB_OUTPUT
+      - name: Check images/charts path
+        id: check
+        run: |
+          # Check whether images path changed
+          if grep -qE "^${{ env.images_path }}/.*?" <<< "${{ steps.get-files.outputs.files }}";then
+            echo "images_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "images_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check whether charts path changed
+          if grep -qE "^${{ env.charts_path }}/.*?" <<< "${{ steps.get-files.outputs.files }}";then
+            echo "charts_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "charts_changed=false" >> $GITHUB_OUTPUT
+          fi
 
   # Plan for infrastructure implement
   infra_plan:
@@ -113,15 +133,11 @@ jobs:
             echo "infra has been built"
           fi
 
-      # Run terrraform plan for application deployment
-      - name: Run terrraform plan
-        id: plan
+      # Write variables from infra outputs for plan in next step
+      - name: Write variable from infra_outputs
         # Only run if cluster has been built
         if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
         working-directory: test_app/
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-          desired_vars: image_tag;images chart_version;charts
         run: |
           # set +e to continue even if exit code != 0
           set +e
@@ -129,39 +145,64 @@ jobs:
           infra_outputs='${{ steps.get-outputs.outputs.infra_outputs }}'
           vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
           for var in $vars; do
-            sed -nE "s/(^|.*;)($var = .*?);/\2/p" <<< $infra_outputs >> terraform.tfvars
+            echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
           done
 
+      # Write variables from app outputs for plan in next step
+      - name: Write variable from app_outputs
+        # Only run if cluster has been built
+        if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
+        working-directory: test_app/
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          set +e
           # Read app deployment ouputs from previous statet if it exits
           # Otherwise use the default value has been defined in variables.tf files
           terraform init > .nothing
           terraform output > app_outputs_file 2>.err
+
           if [ $? -ne 0 ] || grep -q "No outputs found" app_outputs_file;then
             echo "app has not been deployed"
           else
             echo "app has been deployed"
-            echo "desired variables: $desired_vars"
-            # With each desired variabels, we split to two part (var name, file path will make that var change)
-            for var in $desired_vars; do
-              IFS=';' read -ra arrs <<< $var
-              # Compare the file path with the files that trigger workflow from the step above
-              # if it match we don't need to read the previous var's value from output because it will change
-              # but if it doesn't match we will need to read the previous var's value from outputs to assige to it
-              if grep -qE "(^|.*\s)${{ github.workspace }}/${arrs[1]}/.*? " <<< "${{ needs.changed_files.outputs.files }}";then
-                echo "${arrs[0]} will change!"
+            if [[ ${{ needs.changed_files.outputs.images_changed }} == true ]] ;then
+              echo "iamges will change!"
+            else
+              echo "iamges won't change!"
+              value="\"$(terraform output -raw image_tag 2>.err)\""
+              if [ $? -ne 0 ] && grep -q "Output \"image_tag\" not found" .err; then
+                echo "can't find previous image_tag's value"
               else
-                echo "${arrs[0]} won't change!"
-                echo "${arrs[0]} = \"$(terraform output -raw ${arrs[0]} 2>>.err)\"" >> terrafrom.tfvars
-                if [ $? -ne 0 ] && grep -q "Output \"${arrs[0]}\" not found" .err; then
-                  echo "can't find previous ${arrs[0]}'s' value"
-                else
-                  echo "found previous ${arrs[0]}'s' value"
-                fi
+                echo "image_tag = $value" >> terraform.tfvars
+                echo "found previous image_tag's value"
               fi
-            done
+            fi
+
+            if [[ ${{ needs.changed_files.outputs.charts_changed }} == true ]] ;then
+              echo "charts will change!"
+            else
+              echo "charts won't change!"
+              value="\"$(terraform output -raw chart_version 2>.err)\""
+              if [ $? -ne 0 ] && grep -q "Output \"chart_version\" not found" .err; then
+                echo "can't find previous chart_version's value"
+              else
+                echo "chart_version = $value" >> terraform.tfvars
+                echo "found previous chart_version's value"
+              fi
+            fi
           fi
-          
+
+      # Run terrraform plan for application deployment
+      - name: Run terraform plan
+        id: plan
+        working-directory: test_app/
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform init > .nothing
           terraform plan > .plan_output
+          
           url=$(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')
           sm=$(grep -E '^(Plan:|No changes.)' .plan_output | tr -d '\012\015')
           echo "run-url=$url" >> $GITHUB_OUTPUT
@@ -172,6 +213,8 @@ jobs:
   chart_testing:
     name: Deploy chart to kind cluster
     runs-on: ubuntu-latest
+    needs: changed_files
+    if: ${{ needs.changed_files.outputs.charts_changed=='true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -221,6 +264,8 @@ jobs:
     
   image_testing:
     runs-on: ubuntu-latest
+    needs: changed_files
+    if: ${{ needs.changed_files.outputs.images_changed=='true' }}
     defaults:
       run:
         working-directory: "images/myimage"
@@ -259,23 +304,14 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            var output1 = ``
-            if (${{ needs.deploy_plan.outputs.cluster-built=='true' }}) {
-            output1 = `#### Plan for application deployment...
-              #### Run-url: ${{ needs.deploy_plan.outputs.run-url }}
-              #### Summary: \`${{ needs.deploy_plan.outputs.summary }}\``;
-            } else {
-              output1 = `#### Plan for application deployment...
-              ### Cluster has not been built`;
-            }
-
-            const output2 = `#### Plan for Infrastructure implement...
+            const output = `#### Plan for application deployment...
+            #### Run-url: ${{ needs.deploy_plan.outputs.run-url }}
+            #### Summary: \`${{ needs.deploy_plan.outputs.summary }}\`
+            -----------------
+            #### Plan for Infrastructure implement...
             #### Run-url: ${{ needs.infra_plan.outputs.run-url }}
             #### Summary: \`${{ needs.infra_plan.outputs.summary }}\``;
 
-            const output = `${output1}
-            -------------------------------
-            ${output2}`;
             github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,

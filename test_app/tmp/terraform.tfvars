@@ -1,0 +1,5 @@
+subnet_name = "nothing-sn"
+vpc_id = "vpc-0c4995d2b88fb57ec"
+vpc_cidr = "10.31.0.0/16"
+chart_version = "1.0"
+image_tag = "2.0"
