@@ -1,4 +1,0 @@
-charts:
-  - test_app/charts/mychart
-
-validate-maintainers: false
