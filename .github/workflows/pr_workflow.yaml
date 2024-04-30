@@ -129,7 +129,7 @@ jobs:
           infra_outputs='${{ steps.get-outputs.outputs.infra_outputs }}'
           vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
           for var in $vars; do
-            sed -nE "s/(^|.*;)($var = .*?);/\2/p" <<< $infra_outputs >> terraform.tfvars
+            echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
           done
 
           # Read app deployment ouputs from previous statet if it exits
@@ -141,7 +141,6 @@ jobs:
             echo "app has not been deployed"
           else
             echo "app has been deployed"
-            echo "desired variables: $desired_vars"
             # With each desired variabels, we split to two part (var name, file path will make that var change)
             for var in $desired_vars; do
               IFS=';' read -ra arrs <<< $var
@@ -152,10 +151,14 @@ jobs:
                 echo "${arrs[0]} will change!"
               else
                 echo "${arrs[0]} won't change!"
-                echo "${arrs[0]} = \"$(terraform output -raw ${arrs[0]} 2>>.err)\"" >> terrafrom.tfvars
+                value="\"$(terraform output -raw ${arrs[0]} 2>>.err)\""
+                echo "value found: $value"
                 if [ $? -ne 0 ] && grep -q "Output \"${arrs[0]}\" not found" .err; then
                   echo "can't find previous ${arrs[0]}'s' value"
                 else
+                  echo "${arrs[0]} = $value" >> terraform.tfvars
+                  echo "${arrs[0]} = $value"
+                  cat terraform.tfvars
                   echo "found previous ${arrs[0]}'s' value"
                 fi
               fi
