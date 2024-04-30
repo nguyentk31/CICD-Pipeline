@@ -2,7 +2,7 @@ name: Terraform Run
 run-name: ${{ github.event.head_commit.message }} 🚩
 
 on:
-  push:
+  pull_request:
     branches:
       - main
       - dev
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
       
 env:
-  branch: ${{ github.ref_name }}
+  branch: ${{ github.base_ref }}
 
 jobs:
   Terraform:
