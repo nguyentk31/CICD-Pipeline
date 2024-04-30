@@ -1,4 +1,4 @@
-name: PR
+name: pull request workflow
 run-name: ${{ github.actor }} created pull request from ${{ github.head_ref }} to ${{ github.base_ref }} 🚩
 
 on:
@@ -268,7 +268,8 @@ jobs:
               #### Run-url: ${{ needs.deploy_plan.outputs.run-url }}
               #### Summary: \`${{ needs.deploy_plan.outputs.summary }}\``;
             } else {
-              output1 = `### Cluster has not been built`
+              output1 = `#### Plan for application deployment...
+              ### Cluster has not been built`;
             }
 
             const output2 = `#### Plan for Infrastructure implement...
