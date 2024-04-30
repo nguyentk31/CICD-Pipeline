@@ -1,1 +1,1 @@
-Name = "prod"
+env = "prod"
