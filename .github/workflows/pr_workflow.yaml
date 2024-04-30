@@ -157,6 +157,7 @@ jobs:
                   echo "can't find previous ${arrs[0]}'s' value"
                 else
                   echo "${arrs[0]} = $value" >> terrafrom.tfvars
+                  cat terraform.tfvars
                   echo "found previous ${arrs[0]}'s' value"
                 fi
               fi
