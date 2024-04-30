@@ -156,7 +156,8 @@ jobs:
                 if [ $? -ne 0 ] && grep -q "Output \"${arrs[0]}\" not found" .err; then
                   echo "can't find previous ${arrs[0]}'s' value"
                 else
-                  echo "${arrs[0]} = $value" >> terrafrom.tfvars
+                  echo "${arrs[0]} = $value" >> terraform.tfvars
+                  echo "${arrs[0]} = $value"
                   cat terraform.tfvars
                   echo "found previous ${arrs[0]}'s' value"
                 fi
