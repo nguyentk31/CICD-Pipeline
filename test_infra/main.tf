@@ -22,11 +22,11 @@ resource "aws_vpc" "uit" {
   enable_dns_support   = true
 
   tags = {
-    Name = " Nothing1"
+    Name = "${var.env}-vpc"
   }
 }
 
-variable "Name" {
+variable "env" {
   type = string
 }
 
@@ -36,4 +36,8 @@ output "vpc_id" {
 
 output "vpc_cidr" {
   value = aws_vpc.uit.cidr_block
+}
+
+output "vpc_name" {
+  value = aws_vpc.uit.tags.Name
 }

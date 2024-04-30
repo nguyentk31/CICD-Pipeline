@@ -1,1 +1,1 @@
-Name = "dev"
+env = "dev"

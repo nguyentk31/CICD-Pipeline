@@ -1,4 +1,2 @@
-charts:
-  - charts/mychart
-
 validate-maintainers: false
+check-version-increment: false
