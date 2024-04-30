@@ -1,4 +1,4 @@
-charts:
-  - charts/mychart
+chart-dirs:
+  charts
 
 validate-maintainers: false

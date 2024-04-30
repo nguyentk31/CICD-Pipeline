@@ -32,7 +32,7 @@ jobs:
         run: |
           # Using git diff to compare sha between the current commit and the base branch of pull request
           echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs -d ' ' -I '$' echo "$PWD/$" | xargs)" >> $GITHUB_OUTPUT
-          echo "files"
+          echo "$files"
           echo "$PWD"
 
   # Plan for infrastructure implement
@@ -103,6 +103,7 @@ jobs:
           # set +e to continue even if exit code != 0
           set +e
           echo "$PWD"
+          echo '${{ needs.changed_files.outputs.files }}'
           terraform init > .nothing
           terraform output > infra_outputs_file 2>.err
 
