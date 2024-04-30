@@ -1,0 +1,24 @@
+name: Terraform Run
+run-name: ${{ github.event.head_commit.message }} 🚩
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+      - ft
+  workflow_dispatch:
+      
+env:
+  branch: ${{ github.base_ref }}
+
+jobs:
+  Terraform:
+      name: "Terraform Run"
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4.1.1
+  
+        - name: nothing
+          run: echo "nothing101"
