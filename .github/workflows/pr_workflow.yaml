@@ -169,6 +169,7 @@ jobs:
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
+          terraform init > .nothing
           terraform plan > .plan_output
           
           url=$(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')
