@@ -50,12 +50,13 @@ jobs:
             echo "Summary: $sm"
             
             echo "summary=$sm" >> $GITHUB_OUTPUT
+            echo "failed=false" >> $GITHUB_OUTPUT
           fi
           
       - name: Terraform Apply
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-        if: ${{ !steps.plan.outputs.failed == 'true' || !startsWith(steps.plan.outputs.summary, 'No changes.') }}
+        if: ${{ steps.plan.outputs.failed == 'false' && !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         run: |
           terraform apply plan.json -no-color > output
           echo "Run link: $(grep '^To view this run' -A1 output | grep -v '^To view this run' | tr -d '\012\015')"
@@ -101,12 +102,13 @@ jobs:
             echo "Summary: $sm"
             
             echo "summary=$sm" >> $GITHUB_OUTPUT
+            echo "failed=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Terraform Apply
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
-        if: ${{ !steps.plan.outputs.failed == 'true' || !startsWith(steps.plan.outputs.summary, 'No changes.') }}
+        if: ${{ steps.plan.outputs.failed == 'false' && !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         run: |
           terraform apply plan.json -no-color > output
           echo "Run link: $(grep '^To view this run' -A1 output | grep -v '^To view this run' | tr -d '\012\015')"
