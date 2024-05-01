@@ -12,6 +12,7 @@ env:
   TF_CLOUD_ORGANIZATION: DACN
   TF_CLOUD_PROJECT: UIT
   TF_CLI_ARGS: -no-color
+  branch: ${{ github.ref_name }}
   environment: ${{ github.base_ref == 'main' && 'prod' || 'dev' }}
   app_path: test_app
   infra_path: test_infra
@@ -80,7 +81,7 @@ jobs:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform init
-          echo "TF_WORKSPACE=$TF_WORKSPACE" >> GITHUB_ENV
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
     
       - name: Terraform plan
         id: plan
@@ -151,13 +152,6 @@ jobs:
             echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
           done
 
-      - name: Terraform Init
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-        run: |
-          terraform init
-          echo "TF_WORKSPACE=$TF_WORKSPACE" >> GITHUB_ENV
-
       # Write variables from app outputs for plan in next step
       - name: Write variable from app_outputs
         # Only run if cluster has been built
@@ -199,6 +193,13 @@ jobs:
               fi
             fi
           fi
+
+      - name: Terraform Init
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform init
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
 
       # Run terrraform plan for application deployment
       - name: Run terraform plan

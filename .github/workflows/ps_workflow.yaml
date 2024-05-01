@@ -85,7 +85,7 @@ jobs:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform init
-          echo "TF_WORKSPACE=$TF_WORKSPACE" >> GITHUB_ENV
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
 
       # run terraform plan and save plan to apply
       - name: Terraform plan
@@ -242,7 +242,7 @@ jobs:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
           terraform init
-          echo "TF_WORKSPACE=$TF_WORKSPACE" >> GITHUB_ENV
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
 
       - name: Update image tag
         run: |
