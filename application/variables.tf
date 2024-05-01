@@ -21,17 +21,6 @@ variable "cluster_ca" {
   description = "EKS Cluster's CA Certificate"
 }
 
-# ECR URL
-variable "image_ecr_url" {
-  type        = string
-  description = "Image ECR's URL"
-}
-
-variable "chart_ecr_url" {
-  type        = string
-  description = "Chart ECR's URL"
-}
-
 # LBC variables
 variable "lbc_sa" {
   type        = string
@@ -53,6 +42,17 @@ variable "lbc_role" {
 variable "alb_sg" {
   type        = string
   description = "ALB security group id"
+}
+
+# ECR URL
+variable "image_ecr_url" {
+  type        = string
+  description = "Image ECR's URL"
+}
+
+variable "chart_ecr_url" {
+  type        = string
+  description = "Chart ECR's URL"
 }
 
 # Application's variables

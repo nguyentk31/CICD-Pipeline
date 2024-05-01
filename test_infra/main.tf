@@ -25,3 +25,11 @@ resource "aws_vpc" "uit" {
     Name = "${var.env}-vpc"
   }
 }
+
+# Module ECR
+module "ecr" {
+  source = "./modules/ecr"
+
+  github_account_id = var.github_account_id
+
+}
