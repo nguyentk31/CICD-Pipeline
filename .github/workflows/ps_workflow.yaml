@@ -13,8 +13,8 @@ env:
   TF_CLOUD_PROJECT: UIT
   TF_CLI_ARGS: -no-color
   environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
-  app_path: test_app
-  infra_path: test_infra
+  app_path: application
+  infra_path: infrastructure
 
 jobs:
   # Find file paths that trigger workflow
@@ -23,11 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:
-      infra: ${{ steps.check.outputs.test_infra }}
+      infra: ${{ steps.check.outputs.infrastructure }}
       charts: ${{ steps.check.outputs.charts }}
       images: ${{ steps.check.outputs.images }}
     env:
-      paths_check: test_infra charts images
+      paths_check: infrastructure charts images
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
@@ -233,9 +233,13 @@ jobs:
           # Write outputs get from infra build job that match application variable
           infra_outputs='${{ needs.infra_build.outputs.infra_outputs }}'
           vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
+          echo "before write"
+          cat terraform.tfvars
           for var in $vars; do
             echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
           done
+          echo "after write"
+          cat terraform.tfvars
 
       - name: Terraform Init
         env:
@@ -253,13 +257,15 @@ jobs:
           else
             echo "iamges won't change!"
             value="\"$(terraform output -raw image_tag 2>.err)\""
-            if [ $? -ne 0 ] && grep -q "Output \"image_tag\" not found" .err; then
+            if [ $? -ne 0 ]; then
+
               echo "can't find previous image_tag's value"
             else
               echo "image_tag = $value" >> terraform.tfvars
               echo "found previous image_tag's value"
             fi
           fi
+          cat terraform.tfvars
 
       - name: Update chart version
         run: |
@@ -270,13 +276,15 @@ jobs:
           else
             echo "charts won't change!"
             value="\"$(terraform output -raw chart_version 2>.err)\""
-            if [ $? -ne 0 ] && grep -q "Output \"chart_version\" not found" .err; then
+            if [ $? -ne 0 ]; then
+
               echo "can't find previous chart_version's value"
             else
               echo "chart_version = $value" >> terraform.tfvars
               echo "found previous chart_version's value"
             fi
           fi
+          cat terraform.tfvars
 
       # run terraform plan and save plan to apply
       - name: Terraform plan

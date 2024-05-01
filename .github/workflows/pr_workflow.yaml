@@ -14,8 +14,8 @@ env:
   TF_CLI_ARGS: -no-color
   branch: ${{ github.base_ref }}
   environment: ${{ github.base_ref == 'main' && 'prod' || 'dev' }}
-  app_path: test_app
-  infra_path: test_infra
+  app_path: application
+  infra_path: infrastructure
 
 jobs:
   # Find file paths that trigger workflow
@@ -29,7 +29,7 @@ jobs:
       charts: ${{ steps.check.outputs.charts }}
       images: ${{ steps.check.outputs.images }}
     env:
-      paths_check: test_app test_infra charts images
+      paths_check: application infrastructure charts images
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
@@ -63,6 +63,8 @@ jobs:
     outputs:
       run-url: ${{ steps.plan.outputs.run-url }}
       summary: ${{ steps.plan.outputs.summary }}
+      cluster_built: ${{ steps.get-info.outputs.cluster_built }}
+      infra_outputs: ${{ steps.get-info.outputs.infra_outputs }}
     defaults:
       run:
         working-directory: ${{ env.infra_path }}
@@ -82,6 +84,24 @@ jobs:
         run: |
           terraform init
           echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
+
+      - name: Get previous state
+        id: get-info
+        run: |
+          # set +e to continue even if exit code != 0
+          set +e
+          terraform output > infra_outputs_file 2>.err
+
+          # Check if exit code != 0 or no outputs then notify "cluster has not been built"
+          # Otherwise save infrastructer outputs to step outputs for next step
+          if [ $? -ne 0 ] || grep -q "No outputs found" infra_outputs_file;then
+            echo "cluster_built=false" >> $GITHUB_OUTPUT
+            echo "infra has not been built"
+          else
+            echo "infra_outputs=$(cat infra_outputs_file | tr -s '\015\012' ';')" >> $GITHUB_OUTPUT
+            echo "cluster_built=true" >> $GITHUB_OUTPUT
+            echo "infra has been built"
+          fi
     
       - name: Terraform plan
         id: plan
@@ -97,13 +117,14 @@ jobs:
   # Plan for application deployment
   deploy_plan:
     name: Deployment planning
-    needs: changed_files
+    needs: [ changed_files, infra_plan ]
+    # Only run if cluster has been built
+    if: ${{ needs.infra_plan.outputs.cluster_built == 'true' }}
     runs-on: ubuntu-latest
     # Output plan result to write comment
     outputs:
       run-url: ${{ steps.plan.outputs.run-url }}
       summary: ${{ steps.plan.outputs.summary }}
-      cluster-built: ${{ steps.get-outputs.outputs.cluster_built }}
     defaults:
       run:
         working-directory: ${{ env.app_path }}
@@ -117,45 +138,25 @@ jobs:
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-      # Get infrastructure implementation outputs for deployment planning
-      - name: Get infrastructure outputs
-        id: get-outputs
-        working-directory: ${{ env.infra_path }}
-        env:
-          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
-        run: |
-          # set +e to continue even if exit code != 0
-          set +e
-          terraform init > .nothing
-          terraform output > infra_outputs_file 2>.err
-
-          # Check if exit code != 0 or no outputs then notify "cluster has not been built"
-          # Otherwise save infrastructer outputs to step outputs for next step
-          if [ $? -ne 0 ] || grep -q "No outputs found" infra_outputs_file;then
-            echo "cluster_built=false" >> $GITHUB_OUTPUT
-            echo "infra has not been built"
-          else
-            echo "infra_outputs=$(cat infra_outputs_file | tr -s '\015\012' ';')" >> $GITHUB_OUTPUT
-            echo "cluster_built=true" >> $GITHUB_OUTPUT
-            echo "infra has been built"
-          fi
-
       # Write variables from infra outputs for plan in next step
       - name: Write variable from infra_outputs
-        # Only run if cluster has been built
-        if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
         run: |
           # Write outputs get from step above that match application variable
-          infra_outputs='${{ steps.get-outputs.outputs.infra_outputs }}'
+          infra_outputs='${{ needs.infra_plan.outputs.infra_outputs }}'
           vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
           for var in $vars; do
             echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
           done
 
+      - name: Terraform Init
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform init
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
+
       # Write variables from app outputs for plan in next step
       - name: Write variable from app_outputs
-        # Only run if cluster has been built
-        if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
         run: |
           # set +e to continue even if exit code != 0
           set +e
@@ -193,13 +194,6 @@ jobs:
               fi
             fi
           fi
-
-      - name: Terraform Init
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-        run: |
-          terraform init
-          echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
 
       # Run terrraform plan for application deployment
       - name: Run terraform plan
@@ -301,6 +295,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    if: ${{ always() }}
     needs: [ deploy_plan, infra_plan ]
     steps:
       - name: Write pull request comment
@@ -308,10 +303,15 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Plan for application deployment...
-            #### Run-url: ${{ needs.deploy_plan.outputs.run-url }}
-            #### Summary: \`${{ needs.deploy_plan.outputs.summary }}\`
-            -----------------
+            var pre_output = ''
+            if (${{ needs.infra_plan.outputs.cluster_built == 'true' }}) {
+              pre_output = `#### Plan for application deployment...
+              #### Run-url: ${{ needs.deploy_plan.outputs.run-url }}
+              #### Summary: \`${{ needs.deploy_plan.outputs.summary }}\``
+            } else {
+              pre_output = `### Cluster not built`
+            }
+            const output = pre_output+`\n-----------------
             #### Plan for Infrastructure implement...
             #### Run-url: ${{ needs.infra_plan.outputs.run-url }}
             #### Summary: \`${{ needs.infra_plan.outputs.summary }}\``;

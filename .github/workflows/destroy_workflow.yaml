@@ -8,6 +8,8 @@ env:
   TF_CLOUD_ORGANIZATION: DACN
   TF_CLOUD_PROJECT: UIT
   environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+  app_path: application
+  infra_path: infrastructure
 
 jobs:
   app_destroy:
@@ -15,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: test_app
+        working-directory: ${{ env.app_path }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
@@ -36,18 +38,26 @@ jobs:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         id: plan
         run: |
+          set +e
           terraform plan -no-color -destroy -out plan.json > .output
-          url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
-          sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
-          echo "Run link: $url"
-          echo "Summary: $sm"
-          
-          echo "summary=$sm" >> $GITHUB_OUTPUT
+          if [ $? -ne 0 ]; then
+            echo "Destroy failed"
+
+            echo "failed=true" >> $GITHUB_OUTPUT
+
+          else
+            url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
+            sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
+            echo "Run link: $url"
+            echo "Summary: $sm"
+            
+            echo "summary=$sm" >> $GITHUB_OUTPUT
+          fi
           
       - name: Terraform Apply
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-        if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
+        if: ${{ !steps.plan.outputs.failed == 'true' || !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         run: |
           terraform apply plan.json -no-color > output
           echo "Run link: $(grep '^To view this run' -A1 output | grep -v '^To view this run' | tr -d '\012\015')"
@@ -55,11 +65,12 @@ jobs:
 
   infra_destroy:
     name: Destroy infrastructure
+    if: ${{ always() }}
     needs: app_destroy
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: test_infra
+        working-directory: ${{ env.infra_path }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
@@ -80,18 +91,28 @@ jobs:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         id: plan
         run: |
+          set +e
           terraform plan -no-color -destroy -out plan.json -var-file=./environments/$environment/terraform.tfvars > .output
-          url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
-          sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
-          echo "Run link: $url"
-          echo "Summary: $sm"
+          if [ $? -ne 0 ]; then
+            echo "Destroy failed"
+
+            echo "failed=true" >> $GITHUB_OUTPUT
+
+          else
+            url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
+            sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
+            echo "Run link: $url"
+            echo "Summary: $sm"
+            
+            echo "summary=$sm" >> $GITHUB_OUTPUT
+          fi
+
           
-          echo "summary=$sm" >> $GITHUB_OUTPUT
-          
+
       - name: Terraform Apply
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
-        if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
+        if: ${{ !steps.plan.outputs.failed == 'true' || !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         run: |
           terraform apply plan.json -no-color > output
           echo "Run link: $(grep '^To view this run' -A1 output | grep -v '^To view this run' | tr -d '\012\015')"
