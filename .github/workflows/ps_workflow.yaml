@@ -165,12 +165,14 @@ jobs:
           echo "repository=${ADDR[1]}" >> $GITHUB_OUTPUT
       - name: Chage chart name and get chart version
         id: get-info
+        env:
+          REPOSITORY: ${{ steps.login-ecr.outputs.repository }}
         run: |
-          sed -i "s/^name:.*/name: ${{ steps.login-ecr.outputs.repository }}/" mychart/Chart.yaml
+          sed -i "s/^name:.*/name: $REPOSITORY/" mychart/Chart.yaml
           version=$(sed -nE "s/^version: (.*$)/\1/p" mychart/Chart.yaml)
           echo "chart_version=$version" >> $GITHUB_OUTPUT
 
-          package_name="${ADDR[1]}-$version.tgz"
+          package_name="$REPOSITORY-$version.tgz"
           REPO="${{ steps.login-ecr.outputs.repository }}-$version.tgz"
           echo "package=$package_name" >> $GITHUB_OUTPUT
 
@@ -178,11 +180,11 @@ jobs:
         id: push
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          Package: ${{ steps.get-info.outputs.package }}
+          PACKAGE: ${{ steps.get-info.outputs.package }}
         run: |
           helm package mychart
-          echo $Package
-          helm push $Package oci://$REGISTRY
+          echo $PACKAGE
+          helm push $PACKAGE oci://$REGISTRY
           # echo "chart_version=$version" >> $GITHUB_OUTPUT
 
   # # Push docker image to ECR
