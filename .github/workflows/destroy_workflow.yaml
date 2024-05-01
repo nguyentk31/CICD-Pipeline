@@ -62,6 +62,7 @@ jobs:
 
   infra_destroy:
     name: Destroy infrastructure
+    if: ${{ always() }}
     needs: app_destroy
     runs-on: ubuntu-latest
     defaults:
