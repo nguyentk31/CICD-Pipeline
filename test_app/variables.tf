@@ -28,11 +28,12 @@ variable "chart_ecr_url" {
 # Application's variables
 variable "chart_version" {
   type        = string
-  default     = "my-application"
+  default     = "latest"
   description = "Helm chart name"
 }
 
 variable "image_tag" {
   type        = string
+  default     = "latest"
   description = "Application image's tag"
 }
