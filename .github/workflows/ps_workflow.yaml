@@ -39,11 +39,15 @@ jobs:
       - name: Check changed path
         id: check
         run: |
+          echo 'Files changed: ${{ steps.get-files.outputs.files }}'
+          # Check whether images path changed
           for path in $paths_check; do
             if grep -qE "(^| )$path/.*" <<< "${{ steps.get-files.outputs.files }}";then
               echo "$path=true" >> $GITHUB_OUTPUT
+              echo "$path changed"
             else
               echo "$path=false" >> $GITHUB_OUTPUT
+              echo "$path not changed"
             fi
           done
 
