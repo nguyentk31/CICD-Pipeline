@@ -158,11 +158,11 @@ jobs:
           IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
           sed -i "s/^name:.*/name: ${ADDR[1]}/" mychart/Chart.yaml
           version=$(sed -nE "s/^version: (.*$)/\1/p" mychart/Chart.yaml)
-          echo $version
-          echo "${ADDR[1]}-$version.tgz"
+          REPO="${ADDR[1]}-$version.tgz"
+          echo $REPO
 
           helm package mychart > .output
-          helm push "${ADDR[1]}-$version.tgz" oci://$REGISTRY
+          helm push $REPO oci://$REGISTRY
           echo "chart_version=$version" >> $GITHUB_OUTPUT
 
   # # Push docker image to ECR
