@@ -78,6 +78,12 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        
+      - name: Terraform Init
+        env:
+          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
+        run: |
+          terraform init
 
       # run terraform plan and save plan to apply
       - name: Terraform plan
@@ -86,7 +92,6 @@ jobs:
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
-          terraform init > .nothing
           terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars > .plan_output
 
           # Plan and print Run link and summary of plan
@@ -114,7 +119,6 @@ jobs:
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
-          terraform init
           terraform output > infra_outputs_file
           echo "infra_outputs=$(cat infra_outputs_file | tr -s '\015\012' ';')" >> $GITHUB_OUTPUT
 
@@ -249,21 +253,32 @@ jobs:
         if: ${{ needs.changed_files.outputs.charts == 'true' }}
         run: |
           echo "chart_version = \"${{ needs.chart_push.outputs.chart_version }}\"" >> terraform.tfvars
-  
-      # run terraform plan and save plan to apply
-      - name: Terraform plan
+
+      - name: Terraform Init
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
-          terraform init > .nothing
-          terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars' > .plan_output
+          terraform init
+
+      # run terraform plan and save plan to apply
+      - name: Terraform plan
+        id: plan
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars > .plan_output
 
           # Plan and print Run link and summary of plan
-          echo "Run link: $(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')"
-          echo "Summary: $(grep -E '^(Apply complete!|No changes.)' .plan_output | tr -d '\012\015')"
+          url=$(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')
+          sm=$(grep -E '^(Plan:|No changes.)' .plan_output | tr -d '\012\015')
+          echo "Run link: $url"
+          echo "Summary: $sm"
+          
+          echo "summary=$sm" >> $GITHUB_OUTPUT
 
       # run terraform apply the plan from previous step
       - name: Terraform apply
+        if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
