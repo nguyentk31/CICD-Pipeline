@@ -261,6 +261,7 @@ jobs:
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
+          set +e
           if [[ ${{ needs.changed_files.outputs.images }} == true ]] ;then
             echo "iamges will change!"
             echo "image_tag = \"${{ needs.image_push.outputs.image_tag }}\"" >> terraform.tfvars
@@ -279,6 +280,7 @@ jobs:
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
+          set +e
           if [[ ${{ needs.changed_files.outputs.charts }} == true ]] ;then
             echo "charts will change!"
             echo "chart_version = \"${{ needs.chart_push.outputs.chart_version }}\"" >> terraform.tfvars
