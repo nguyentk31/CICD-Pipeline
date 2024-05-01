@@ -126,7 +126,7 @@ jobs:
   chart_push:
     name: Push helm chart
     needs: [ changed_files, infra_build ] 
-    # if: ${{ needs.changed_files.outputs.charts == 'true' }}
+    if: ${{ needs.changed_files.outputs.charts == 'true' }}
     outputs:
       chart_version: ${{ steps.push.outputs.chart_version }}
     runs-on: ubuntu-latest
@@ -156,123 +156,116 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
-          REPOSITORY=${ADDR[1]}
           sed -i "s/^name:.*/name: ${ADDR[1]}/" mychart/Chart.yaml
-          echo "${{ needs.infra_build.outputs.chart_ecr_url }}"
-          echo ${ADDR[1]}
-          echo ${ADDR[0]}
-          echo $(sed -n "s/.*-\(.*\).tgz/\1/p" .output)
-
-          cat mychart/Chart.yaml
 
           helm package mychart > .output
-          # helm push $REPOSITORY oci://$REGISTRY
-          # echo "chart_version=$(sed -n "s/.*-\(.*\).tgz/\1/p" .output)" >> $GITHUB_OUTPUT
+          helm push ${ADDR[1]} oci://$REGISTRY
+          echo "chart_version=$(sed -n "s/.*-\(.*\).tgz/\1/p" .output)" >> $GITHUB_OUTPUT
 
-  # # Push docker image to ECR
-  # image_push:
-  #   name: Push docker image
-  #   needs: [ changed_files, infra_build ] 
-  #   if: ${{ needs.changed_files.outputs.images == 'true' }}
-  #   outputs:
-  #     image_tag: ${{ steps.push.outputs.image_tag }}
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: images
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4.1.1
-  #       with:
-  #         fetch-depth: 1
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         role-to-assume: ${{ needs.infra_build.outputs.github_actions_role }}
-  #         aws-region: ${{ needs.infra_build.outputs.aws_region }}
+  # Push docker image to ECR
+  image_push:
+    name: Push docker image
+    needs: [ changed_files, infra_build ] 
+    if: ${{ needs.changed_files.outputs.images == 'true' }}
+    outputs:
+      image_tag: ${{ steps.push.outputs.image_tag }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: images
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+        with:
+          fetch-depth: 1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ needs.infra_build.outputs.github_actions_role }}
+          aws-region: ${{ needs.infra_build.outputs.aws_region }}
 
-  #     - name: Login to Amazon ECR
-  #       id: login-ecr
-  #       uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-  #     - name: Build, tag, and push docker image to Amazon ECR
-  #       id: push
-  #       env:
-  #         REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-  #         IMAGE_TAG: ${{ github.sha }}
-  #       run: |
-  #         IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.image_ecr_url }}"
-  #         REPOSITORY=${ADDR[1]}
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: push
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.image_ecr_url }}"
+          REPOSITORY=${ADDR[1]}
 
-  #         docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG myimage
-  #         docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
-  #         echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG myimage
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-  # app_deploy:
-  #   name: Deploy app to EKS Cluster
-  #   needs: [ changed_files, infra_build, image_push, chart_push ]
-  #   if: ${{ needs.changed_files.outputs.images == 'true'  || needs.changed_files.outputs.charts == 'true'  || needs.changed_files.outputs.test_app == 'true'}}
-  #   env:
-  #     TF_CLI_ARGS: -no-color
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: test_app
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4.1.1
-  #       with:
-  #         fetch-depth: 1
-  #     - name: Setup Terraform with specified version on the runner
-  #       uses: hashicorp/setup-terraform@v3
-  #       with:
-  #         cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+  app_deploy:
+    name: Deploy app to EKS Cluster
+    needs: [ changed_files, infra_build, image_push, chart_push ]
+    if: ${{ needs.changed_files.outputs.images == 'true'  || needs.changed_files.outputs.charts == 'true'  || needs.changed_files.outputs.test_app == 'true'}}
+    env:
+      TF_CLI_ARGS: -no-color
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: test_app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+        with:
+          fetch-depth: 1
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-  #     # Write variables from infra outputs for plan in next step
-  #     - name: Write variable from infra_outputs
-  #       run: |
-  #         # Write outputs get from infra build job that match application variable
-  #         infra_outputs='${{ needs.infra_build.outputs.infra_outputs }}'
-  #         vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
-  #         for var in $vars; do
-  #           echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
-  #         done
+      # Write variables from infra outputs for plan in next step
+      - name: Write variable from infra_outputs
+        run: |
+          # Write outputs get from infra build job that match application variable
+          infra_outputs='${{ needs.infra_build.outputs.infra_outputs }}'
+          vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
+          for var in $vars; do
+            echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
+          done
 
-  #     - name: Update image tag
-  #       if: ${{ needs.changed_files.outputs.images == 'true' }}
-  #       run: |
-  #         echo "image_tag = \"${{ needs.image_push.outputs.image_tag }}\"" >> terraform.tfvars
+      - name: Update image tag
+        if: ${{ needs.changed_files.outputs.images == 'true' }}
+        run: |
+          echo "image_tag = \"${{ needs.image_push.outputs.image_tag }}\"" >> terraform.tfvars
 
-  #     - name: Update chart version
-  #       if: ${{ needs.changed_files.outputs.charts == 'true' }}
-  #       run: |
-  #         echo "chart_version = \"${{ needs.chart_push.outputs.chart_version }}\"" >> terraform.tfvars
+      - name: Update chart version
+        if: ${{ needs.changed_files.outputs.charts == 'true' }}
+        run: |
+          echo "chart_version = \"${{ needs.chart_push.outputs.chart_version }}\"" >> terraform.tfvars
 
-  #         - name: Setup Terraform with specified version on the runner
-  #         uses: hashicorp/setup-terraform@v3
-  #         with:
-  #           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+          - name: Setup Terraform with specified version on the runner
+          uses: hashicorp/setup-terraform@v3
+          with:
+            cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
   
-  #     # run terraform plan and save plan to apply
-  #     - name: Terraform plan
-  #       env:
-  #         TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-  #       run: |
-  #         terraform init > .nothing
-  #         terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars' > .plan_output
+      # run terraform plan and save plan to apply
+      - name: Terraform plan
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform init > .nothing
+          terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars' > .plan_output
 
-  #         # Plan and print Run link and summary of plan
-  #         echo "Run link: $(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')"
-  #         echo "Summary: $(grep -E '^(Apply complete!|No changes.)' .plan_output | tr -d '\012\015')"
+          # Plan and print Run link and summary of plan
+          echo "Run link: $(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')"
+          echo "Summary: $(grep -E '^(Apply complete!|No changes.)' .plan_output | tr -d '\012\015')"
 
-  #     # run terraform apply the plan from previous step
-  #     - name: Terraform apply
-  #       env:
-  #         TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-  #       run: |
-  #         terraform apply .json_plan > .apply_output
-  #         echo "Run link: $(grep '^To view this run' -A1 .apply_output | grep -v '^To view this run' | tr -d '\012\015')"
-  #         echo "Summary: $(grep -E '^(Apply complete!|No changes.)' .apply_output | tr -d '\012\015')"
+      # run terraform apply the plan from previous step
+      - name: Terraform apply
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform apply .json_plan > .apply_output
+          echo "Run link: $(grep '^To view this run' -A1 .apply_output | grep -v '^To view this run' | tr -d '\012\015')"
+          echo "Summary: $(grep -E '^(Apply complete!|No changes.)' .apply_output | tr -d '\012\015')"
 
