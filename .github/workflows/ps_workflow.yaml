@@ -11,7 +11,10 @@ on:
 env:
   TF_CLOUD_ORGANIZATION: DACN
   TF_CLOUD_PROJECT: UIT
+  TF_CLI_ARGS: -no-color
   environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+  app_path: test_app
+  infra_path: test_infra
 
 jobs:
   # Find file paths that trigger workflow
@@ -20,12 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:
-      test_app: ${{ steps.check.outputs.test_app }}
-      test_infra: ${{ steps.check.outputs.test_infra }}
+      infra: ${{ steps.check.outputs.test_infra }}
       charts: ${{ steps.check.outputs.charts }}
       images: ${{ steps.check.outputs.images }}
     env:
-      paths_check: test_app test_infra charts images
+      paths_check: test_infra charts images
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
@@ -58,17 +60,16 @@ jobs:
     outputs:
       infra_outputs: ${{ steps.output.outputs.infra_outputs }}
       github_actions_role: ${{ steps.output.outputs.github_actions_role }}
+      aws_region: ${{ steps.output.outputs.aws_region }}
       image_ecr_url: ${{ steps.output.outputs.image_ecr_url }}
       chart_ecr_url: ${{ steps.output.outputs.chart_ecr_url }}
-      aws_region: ${{ steps.output.outputs.aws_region }}
     env:
       variables: github_actions_role image_ecr_url chart_ecr_url aws_region
-      TF_CLI_ARGS: -no-color
     runs-on: ubuntu-latest
     # Setup workspace and tfvars file base on environment
     defaults:
       run:
-        working-directory: test_infra
+        working-directory: ${{ env.infra_path }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
@@ -84,13 +85,12 @@ jobs:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform init
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
 
       # run terraform plan and save plan to apply
       - name: Terraform plan
         id: plan
-        if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
-        env:
-          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
+        if: ${{ needs.changed_files.outputs.infra == 'true' }}
         run: |
           terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars > .plan_output
 
@@ -104,10 +104,7 @@ jobs:
 
       # run terraform apply the plan from previous step
       - name: Terraform apply
-        # if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
-        if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
-        env:
-          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
+        if: ${{ needs.changed_files.outputs.infra == 'true' && !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         run: |
           terraform apply .json_plan > .apply_output
           echo "Run link: $(grep '^To view this run' -A1 .apply_output | grep -v '^To view this run' | tr -d '\012\015')"
@@ -116,8 +113,6 @@ jobs:
       # run terraform output for jobs after this
       - name: Terraform output
         id: output
-        env:
-          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform output > infra_outputs_file
           echo "infra_outputs=$(cat infra_outputs_file | tr -s '\015\012' ';')" >> $GITHUB_OUTPUT
@@ -129,7 +124,8 @@ jobs:
   # Push helm chart to ECR
   chart_push:
     name: Push helm chart
-    needs: [ changed_files, infra_build ] 
+    needs: [ changed_files, infra_build ]
+    if: ${{ needs.changed_files.outputs.charts == 'true' }}
     outputs:
       chart_version: ${{ steps.modify.outputs.chart_version }}
     runs-on: ubuntu-latest
@@ -138,12 +134,10 @@ jobs:
         working-directory: charts
     steps:
       - name: Checkout
-        if: ${{ needs.changed_files.outputs.charts == 'true' }}
         uses: actions/checkout@v4.1.1
         with:
           fetch-depth: 1
       - name: Configure AWS credentials
-        if: ${{ needs.changed_files.outputs.charts == 'true' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -152,12 +146,10 @@ jobs:
           aws-region: ${{ needs.infra_build.outputs.aws_region }}
 
       - name: Login to Amazon ECR
-        if: ${{ needs.changed_files.outputs.charts == 'true' }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
       
       - name: Modify helm chart
-        if: ${{ needs.changed_files.outputs.charts == 'true' }}
         id: modify
         run: |
           IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
@@ -168,7 +160,6 @@ jobs:
           echo "package=$package_name" >> $GITHUB_OUTPUT
 
       - name: Package and push helm chart to Amazon ECR
-        if: ${{ needs.changed_files.outputs.charts == 'true' }}
         id: push
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -181,6 +172,7 @@ jobs:
   image_push:
     name: Push docker image
     needs: [ changed_files, infra_build ] 
+    if: ${{ needs.changed_files.outputs.images == 'true' }}
     outputs:
       image_tag: ${{ steps.push.outputs.image_tag }}
     runs-on: ubuntu-latest
@@ -189,12 +181,10 @@ jobs:
         working-directory: images
     steps:
       - name: Checkout
-        if: ${{ needs.changed_files.outputs.images == 'true' }}
         uses: actions/checkout@v4.1.1
         with:
           fetch-depth: 1
       - name: Configure AWS credentials
-        if: ${{ needs.changed_files.outputs.images == 'true' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -203,12 +193,10 @@ jobs:
           aws-region: ${{ needs.infra_build.outputs.aws_region }}
 
       - name: Login to Amazon ECR
-        if: ${{ needs.changed_files.outputs.images == 'true' }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push docker image to Amazon ECR
-        if: ${{ needs.changed_files.outputs.images == 'true' }}
         id: push
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -223,14 +211,12 @@ jobs:
 
   app_deploy:
     name: Deploy app to EKS Cluster
+    if: ${{ always() }}
     needs: [ changed_files, infra_build, image_push, chart_push ]
-    if: ${{ needs.changed_files.outputs.images == 'true'  || needs.changed_files.outputs.charts == 'true'  || needs.changed_files.outputs.test_app == 'true' }}
-    env:
-      TF_CLI_ARGS: -no-color
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: test_app
+        working-directory: ${{ env.app_path }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
@@ -256,10 +242,9 @@ jobs:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
           terraform init
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
 
       - name: Update image tag
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
           set +e
           if [[ ${{ needs.changed_files.outputs.images }} == true ]] ;then
@@ -277,8 +262,6 @@ jobs:
           fi
 
       - name: Update chart version
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
           set +e
           if [[ ${{ needs.changed_files.outputs.charts }} == true ]] ;then
@@ -298,8 +281,6 @@ jobs:
       # run terraform plan and save plan to apply
       - name: Terraform plan
         id: plan
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
           terraform plan -out .json_plan  > .plan_output
 
