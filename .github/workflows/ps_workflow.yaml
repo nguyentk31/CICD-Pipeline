@@ -126,7 +126,7 @@ jobs:
   chart_push:
     name: Push helm chart
     needs: [ changed_files, infra_build ] 
-    if: ${{ needs.changed_files.outputs.charts == 'true' }}
+    # if: ${{ needs.changed_files.outputs.charts == 'true' }}
     outputs:
       chart_version: ${{ steps.push.outputs.chart_version }}
     runs-on: ubuntu-latest
