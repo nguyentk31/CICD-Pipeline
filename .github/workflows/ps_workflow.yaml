@@ -162,7 +162,7 @@ jobs:
           echo $REPO
 
           helm package mychart > .output
-          helm push $REPO oci://$REGISTRY
+          helm push $REPO oci://$REGISTRY/
           echo "chart_version=$version" >> $GITHUB_OUTPUT
 
   # # Push docker image to ECR
