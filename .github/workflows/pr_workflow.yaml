@@ -39,18 +39,23 @@ jobs:
       - name: Check images/charts path
         id: check
         run: |
+          echo '${{ steps.get-files.outputs.files }}'
           # Check whether images path changed
           if grep -qE "^${{ env.images_path }}/.*?" <<< "${{ steps.get-files.outputs.files }}";then
             echo "images_changed=true" >> $GITHUB_OUTPUT
+            echo "images changed"
           else
             echo "images_changed=false" >> $GITHUB_OUTPUT
+            echo "images not changed"
           fi
 
           # Check whether charts path changed
           if grep -qE "^${{ env.charts_path }}/.*?" <<< "${{ steps.get-files.outputs.files }}";then
             echo "charts_changed=true" >> $GITHUB_OUTPUT
-          else
+            echo "charts changed"
+            else
             echo "charts_changed=false" >> $GITHUB_OUTPUT
+            echo "charts not changed"
           fi
 
   # Plan for infrastructure implement
