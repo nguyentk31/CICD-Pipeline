@@ -249,11 +249,6 @@ jobs:
         if: ${{ needs.changed_files.outputs.charts == 'true' }}
         run: |
           echo "chart_version = \"${{ needs.chart_push.outputs.chart_version }}\"" >> terraform.tfvars
-
-          - name: Setup Terraform with specified version on the runner
-          uses: hashicorp/setup-terraform@v3
-          with:
-            cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
   
       # run terraform plan and save plan to apply
       - name: Terraform plan
