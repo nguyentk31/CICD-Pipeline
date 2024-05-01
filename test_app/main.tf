@@ -23,7 +23,13 @@ resource "aws_subnet" "uit" {
     Name                     = var.subnet_name
     image_tag = var.image_tag
     chart_version = var.chart_version
+    image_ecr_url = var.image_ecr_url
+    chart_ecr_url = var.chart_ecr_url
   }
+}
+
+data "aws_ecr_authorization_token" "token" {
+  registry_id = split(".", var.chart_ecr_url)[0]
 }
 
 

@@ -1,5 +1,5 @@
 name: pull request workflow
-run-name: ${{ github.actor }} created pull request from ${{ github.head_ref }} to ${{ github.base_ref }} 🚩
+run-name: ${{ github.actor }} / ${{ github.event.pull_request.title  }}  🚩
 
 on:
   pull_request:
@@ -71,7 +71,7 @@ jobs:
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
     
-      - name: Run terraform plan
+      - name: Terraform plan
         id: plan
         working-directory: "test_infra/"
         # Setup workspace and tfvars file base on environment
@@ -139,8 +139,6 @@ jobs:
         if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
         working-directory: test_app/
         run: |
-          # set +e to continue even if exit code != 0
-          set +e
           # Write outputs get from step above that match application variable
           infra_outputs='${{ steps.get-outputs.outputs.infra_outputs }}'
           vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
@@ -156,6 +154,7 @@ jobs:
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
+          # set +e to continue even if exit code != 0
           set +e
           # Read app deployment ouputs from previous statet if it exits
           # Otherwise use the default value has been defined in variables.tf files

@@ -1,1 +1,1 @@
-subnet_name = "nothing-sn"
+subnet_name = "nothing"
