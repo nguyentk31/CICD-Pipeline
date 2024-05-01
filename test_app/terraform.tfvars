@@ -1,1 +1,1 @@
-subnet_name = "nothing"
+subnet_name = "mysubnet"

@@ -11,8 +11,10 @@ on:
 env:
   TF_CLOUD_ORGANIZATION: DACN
   TF_CLOUD_PROJECT: UIT
-  branch: ${{ github.base_ref }}
+  TF_CLI_ARGS: -no-color
   environment: ${{ github.base_ref == 'main' && 'prod' || 'dev' }}
+  app_path: test_app
+  infra_path: test_infra
 
 jobs:
   # Find file paths that trigger workflow
@@ -21,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:
-      test_app: ${{ steps.check.outputs.test_app }}
-      test_infra: ${{ steps.check.outputs.test_infra }}
+      app: ${{ steps.check.outputs.test_app }}
+      infra: ${{ steps.check.outputs.test_infra }}
       charts: ${{ steps.check.outputs.charts }}
       images: ${{ steps.check.outputs.images }}
     env:
@@ -69,17 +71,19 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform Init
+        env:
+          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
+        run: |
+          terraform init
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> GITHUB_ENV
     
       - name: Terraform plan
         id: plan
-        working-directory: "test_infra/"
-        # Setup workspace and tfvars file base on environment
-        env:
-          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
-          TF_CLI_ARGS: ${{ format('-no-color -var-file=./environments/{0}/terraform.tfvars', env.environment) }}
+        working-directory: ${{ env.infra_path }}
         run: |
-          terraform init > .nothing
-          terraform plan > .plan_output
+          terraform plan -var-file=./environments/$environment/terraform.tfvars > .plan_output
 
           # Grep the run-url and plan summary lines then save to step outputs
           url=$(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')
@@ -112,7 +116,7 @@ jobs:
       # Get infrastructure implementation outputs for deployment planning
       - name: Get infrastructure outputs
         id: get-outputs
-        working-directory: test_infra/
+        working-directory: ${{ env.infra_path }}
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
@@ -136,7 +140,7 @@ jobs:
       - name: Write variable from infra_outputs
         # Only run if cluster has been built
         if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
-        working-directory: test_app/
+        working-directory: ${{ env.app_path }}
         run: |
           # Write outputs get from step above that match application variable
           infra_outputs='${{ steps.get-outputs.outputs.infra_outputs }}'
@@ -149,7 +153,7 @@ jobs:
       - name: Write variable from app_outputs
         # Only run if cluster has been built
         if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
-        working-directory: test_app/
+        working-directory: ${{ env.app_path }}
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
@@ -194,7 +198,7 @@ jobs:
       # Run terrraform plan for application deployment
       - name: Run terraform plan
         id: plan
-        working-directory: test_app/
+        working-directory: ${{ env.app_path }}
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
