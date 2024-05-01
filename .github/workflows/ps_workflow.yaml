@@ -82,7 +82,7 @@ jobs:
       # run terraform plan and save plan to apply
       - name: Terraform plan
         id: plan
-        # if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
+        if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
@@ -99,7 +99,8 @@ jobs:
 
       # run terraform apply the plan from previous step
       - name: Terraform apply
-        if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }} ### ${{ needs.changed_files.outputs.test_infra == 'true' }}
+        # if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
+        if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
@@ -157,6 +158,10 @@ jobs:
           IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
           REPOSITORY=${ADDR[1]}
           sed -i "s/^name:.*/name: ${arr[1]}/" mychart/Chart.yaml
+          echo "${{ needs.infra_build.outputs.chart_ecr_url }}"
+          echo ${arr[1]}
+          echo ${arr[0]}
+
           cat mychart/Chart.yaml
 
           helm package mychart > .output
