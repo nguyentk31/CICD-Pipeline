@@ -86,7 +86,7 @@ jobs:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform init > .nothing
-          terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars' > .plan_output
+          terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars > .plan_output
 
           # Plan and print Run link and summary of plan
           echo "Run link: $(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')"
