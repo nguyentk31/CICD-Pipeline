@@ -62,6 +62,9 @@ jobs:
     outputs:
       run-url: ${{ steps.plan.outputs.run-url }}
       summary: ${{ steps.plan.outputs.summary }}
+    defaults:
+      run:
+        working-directory: ${{ env.infra_path }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
@@ -81,7 +84,6 @@ jobs:
     
       - name: Terraform plan
         id: plan
-        working-directory: ${{ env.infra_path }}
         run: |
           terraform plan -var-file=./environments/$environment/terraform.tfvars > .plan_output
 
@@ -94,15 +96,16 @@ jobs:
   # Plan for application deployment
   deploy_plan:
     name: Deployment planning
+    needs: changed_files
     runs-on: ubuntu-latest
     # Output plan result to write comment
     outputs:
       run-url: ${{ steps.plan.outputs.run-url }}
       summary: ${{ steps.plan.outputs.summary }}
       cluster-built: ${{ steps.get-outputs.outputs.cluster_built }}
-    needs: changed_files
-    env:
-      TF_CLI_ARGS: -no-color
+    defaults:
+      run:
+        working-directory: ${{ env.app_path }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4.1.1
@@ -140,7 +143,6 @@ jobs:
       - name: Write variable from infra_outputs
         # Only run if cluster has been built
         if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
-        working-directory: ${{ env.app_path }}
         run: |
           # Write outputs get from step above that match application variable
           infra_outputs='${{ steps.get-outputs.outputs.infra_outputs }}'
@@ -149,19 +151,22 @@ jobs:
             echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
           done
 
+      - name: Terraform Init
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform init
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> GITHUB_ENV
+
       # Write variables from app outputs for plan in next step
       - name: Write variable from app_outputs
         # Only run if cluster has been built
         if: ${{ steps.get-outputs.outputs.cluster_built=='true' }}
-        working-directory: ${{ env.app_path }}
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
           # set +e to continue even if exit code != 0
           set +e
           # Read app deployment ouputs from previous statet if it exits
           # Otherwise use the default value has been defined in variables.tf files
-          terraform init > .nothing
           terraform output > app_outputs_file 2>.err
 
           if [ $? -ne 0 ] || grep -q "No outputs found" app_outputs_file;then
@@ -198,11 +203,7 @@ jobs:
       # Run terrraform plan for application deployment
       - name: Run terraform plan
         id: plan
-        working-directory: ${{ env.app_path }}
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
-          terraform init > .nothing
           terraform plan > .plan_output
           
           url=$(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')
