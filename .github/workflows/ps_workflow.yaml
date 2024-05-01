@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:
-      infra: ${{ steps.check.outputs.test_infra }}
+      infra: ${{ steps.check.outputs.infrastructure }}
       charts: ${{ steps.check.outputs.charts }}
       images: ${{ steps.check.outputs.images }}
     env:
