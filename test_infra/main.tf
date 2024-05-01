@@ -22,14 +22,14 @@ resource "aws_vpc" "uit" {
   enable_dns_support   = true
 
   tags = {
-    Name = "${var.env}-vpc"
+    Name = "${var.env}-myvpv"
   }
 }
 
 # Module ECR
 module "ecr" {
   source = "./modules/ecr"
-
+  env = var.env
   github_account_id = var.github_account_id
 
 }
