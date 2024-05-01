@@ -12,7 +12,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 
 
@@ -24,4 +24,12 @@ resource "aws_vpc" "uit" {
   tags = {
     Name = "${var.env}-vpc"
   }
+}
+
+# Module ECR
+module "ecr" {
+  source = "./modules/ecr"
+
+  github_account_id = var.github_account_id
+
 }

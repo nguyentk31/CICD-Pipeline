@@ -12,11 +12,28 @@ variable "vpc_cidr" {
   default = "10.0.0.0/16"
 }
 
-variable "image_tag" {
-  type = string
-  default = "latest"
+# ECR URL
+variable "image_ecr_url" {
+  type        = string
+  default = "nothing-url"
+  description = "Image ECR's URL"
 }
+
+variable "chart_ecr_url" {
+  type        = string
+  default = "nothing-url"
+  description = "Chart ECR's URL"
+}
+
+# Application's variables
 variable "chart_version" {
-  type = string
-  default = "latest"
+  type        = string
+  default     = "latest"
+  description = "Helm chart name"
+}
+
+variable "image_tag" {
+  type        = string
+  default     = "latest"
+  description = "Application image's tag"
 }

@@ -52,7 +52,7 @@ resource "helm_release" "app-chart" {
   name       = "my-application"
   repository = "oci://${split("/", var.chart_ecr_url)[0]}"
   chart      = split("/", var.chart_ecr_url)[1]
-  version    = "0.1.1"
+  version    = var.chart_version
 
   set {
     name  = "image.repository"
