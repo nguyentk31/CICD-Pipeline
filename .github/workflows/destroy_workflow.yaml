@@ -25,7 +25,15 @@ jobs:
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
+      - name: Terraform Init
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform init
+
       - name: Terraform Plan
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         id: plan
         run: |
           terraform plan -no-color -destroy -out plan.json > .output
@@ -37,6 +45,8 @@ jobs:
           echo "summary=$sm" >> $GITHUB_OUTPUT
           
       - name: Terraform Apply
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         run: |
           terraform apply plan.json -no-color > output
@@ -59,7 +69,15 @@ jobs:
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
+      - name: Terraform Init
+        env:
+          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
+        run: |
+          terraform init
+
       - name: Terraform Plan
+        env:
+          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         id: plan
         run: |
           terraform plan -no-color -destroy -out plan.json -var-file=./environments/$environment/terraform.tfvars > .output
@@ -71,6 +89,8 @@ jobs:
           echo "summary=$sm" >> $GITHUB_OUTPUT
           
       - name: Terraform Apply
+        env:
+          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         run: |
           terraform apply plan.json -no-color > output
