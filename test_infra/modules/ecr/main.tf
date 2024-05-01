@@ -1,11 +1,11 @@
 # Private ECR Repository
 resource "aws_ecr_repository" "image" {
-  name         = "image-repo"
+  name         = "${var.env}-image-repo"
   force_delete = true
 }
 
 resource "aws_ecr_repository" "chart" {
-  name         = "chart-repo"
+  name         = "${var.env}-chart-repo"
   force_delete = true
 }
 
@@ -26,7 +26,7 @@ data "aws_iam_policy_document" "ga-assumerole" {
 }
 
 resource "aws_iam_role" "github-actions" {
-  name               = "GithubActionsRole"
+  name               = "${var.env}-GithubActionsRole"
   assume_role_policy = data.aws_iam_policy_document.ga-assumerole.json
   managed_policy_arns = [ "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser" ]
 }
