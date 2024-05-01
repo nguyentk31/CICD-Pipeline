@@ -46,7 +46,7 @@ resource "aws_iam_role_policy_attachment" "lbc-AWSLoadBalancerController" {
 # Security Group for Application load balancer (ALB)
 resource "aws_security_group" "alb" {
   name        = "${var.default_tags.Project}-${var.default_tags.Environment}-ALB-SG"
-  description = "Allow HTTP to ALB"
+  description = "Allow HTTPS to ALB"
   vpc_id      = var.cluster_vpc
 
   ingress {
