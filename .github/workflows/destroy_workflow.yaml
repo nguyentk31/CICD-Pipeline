@@ -42,7 +42,9 @@ jobs:
           terraform plan -no-color -destroy -out plan.json > .output
           if [ $? -ne 0 ]; then
             echo "Destroy failed"
+
             echo "failed=true" >> $GITHUB_OUTPUT
+
           else
             url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
             sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
@@ -93,7 +95,9 @@ jobs:
           terraform plan -no-color -destroy -out plan.json -var-file=./environments/$environment/terraform.tfvars > .output
           if [ $? -ne 0 ]; then
             echo "Destroy failed"
+
             echo "failed=true" >> $GITHUB_OUTPUT
+
           else
             url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
             sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
@@ -102,7 +106,9 @@ jobs:
             
             echo "summary=$sm" >> $GITHUB_OUTPUT
           fi
+
           
+
       - name: Terraform Apply
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
