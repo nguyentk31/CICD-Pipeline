@@ -90,8 +90,10 @@ jobs:
           terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars > .plan_output
 
           # Plan and print Run link and summary of plan
-          echo "Run link: $(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')"
-          echo "Summary: $(grep -E '^(Apply complete!|No changes.)' .plan_output | tr -d '\012\015')"
+          url=$(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')
+          sm=$(grep -E '^(Plan:|No changes.)' .plan_output | tr -d '\012\015')
+          echo "Run link: $url"
+          echo "Summary: $sm"
 
           echo "summary=$sm" >> $GITHUB_OUTPUT
 
