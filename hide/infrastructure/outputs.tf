@@ -20,6 +20,11 @@ output "cluster_ca" {
   description = "EKS Cluster's CA Certificate"
 }
 
+output "master_role" {
+  value       = module.eks.master_role
+  description = "EKS Master role ARN"
+}
+
 # Outputs of LBC module
 output "lbc_sa" {
   value       = var.lbc_sa
