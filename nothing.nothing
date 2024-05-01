@@ -64,7 +64,7 @@ aws ecr get-login-password --region $region --profile $profile | helm registry l
 
 helm package mychart
 
-helm push myprj-dev-chart-repo-0.1.1.tgz oci://${account_id}.dkr.ecr.us-east-1.amazonaws.com/
+helm push chart-repo1-0.1.0.tgz oci://${account_id}.dkr.ecr.us-east-1.amazonaws.com/
 
 # Kubectl config and deploy app
 $cluster_name="myprj-dev-EKSCluster"

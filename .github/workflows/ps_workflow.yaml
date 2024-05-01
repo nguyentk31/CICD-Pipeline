@@ -35,15 +35,19 @@ jobs:
         id: get-files
         run: |
           # Using git diff to compare sha between the current commit and the base branch of pull request
-          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs -I '$' echo "$PWD/$" | xargs)" >> $GITHUB_OUTPUT
+          echo "files=$(git diff --name-only ${{ github.event.before   }} ${{ github.event.after }} | xargs)" >> $GITHUB_OUTPUT
       - name: Check changed path
         id: check
         run: |
+          echo 'Files changed: ${{ steps.get-files.outputs.files }}'
+          # Check whether images path changed
           for path in $paths_check; do
             if grep -qE "(^| )$path/.*" <<< "${{ steps.get-files.outputs.files }}";then
               echo "$path=true" >> $GITHUB_OUTPUT
+              echo "$path changed"
             else
               echo "$path=false" >> $GITHUB_OUTPUT
+              echo "$path not changed"
             fi
           done
 
@@ -74,22 +78,33 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        
+      - name: Terraform Init
+        env:
+          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
+        run: |
+          terraform init
 
       # run terraform plan and save plan to apply
       - name: Terraform plan
+        id: plan
         if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
-          terraform init > .nothing
-          terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars' > .plan_output
+          terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars > .plan_output
 
           # Plan and print Run link and summary of plan
-          echo "Run link: $(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')"
-          echo "Summary: $(grep -E '^(Apply complete!|No changes.)' .plan_output | tr -d '\012\015')"
+          url=$(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')
+          sm=$(grep -E '^(Plan:|No changes.)' .plan_output | tr -d '\012\015')
+          echo "Run link: $url"
+          echo "Summary: $sm"
+
+          echo "summary=$sm" >> $GITHUB_OUTPUT
 
       # run terraform apply the plan from previous step
       - name: Terraform apply
+        # if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
@@ -104,7 +119,6 @@ jobs:
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
-          terraform init
           terraform output > infra_outputs_file
           echo "infra_outputs=$(cat infra_outputs_file | tr -s '\015\012' ';')" >> $GITHUB_OUTPUT
 
@@ -118,7 +132,7 @@ jobs:
     needs: [ changed_files, infra_build ] 
     if: ${{ needs.changed_files.outputs.charts == 'true' }}
     outputs:
-      chart_version: ${{ steps.push.outputs.chart_version }}
+      chart_version: ${{ steps.modify.outputs.chart_version }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -131,26 +145,33 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           role-to-assume: ${{ needs.infra_build.outputs.github_actions_role }}
           aws-region: ${{ needs.infra_build.outputs.aws_region }}
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2 
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Modify helm chart
+        id: modify
+        run: |
+          IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
+          sed -i "s/^name:.*/name: ${ADDR[1]}/" mychart/Chart.yaml
+          version=$(sed -nE "s/^version: (.*$)/\1/p" mychart/Chart.yaml)
+          echo "chart_version=$version" >> $GITHUB_OUTPUT
+          package_name="${ADDR[1]}-$version.tgz"
+          echo "package=$package_name" >> $GITHUB_OUTPUT
 
       - name: Package and push helm chart to Amazon ECR
         id: push
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: ${{ steps.rename.outputs.repo }}
+          PACKAGE: ${{ steps.modify.outputs.package }}
         run: |
-          IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
-          REPOSITORY=${ADDR[1]}
-          sed -i "s/^name:.*/name: ${arr[1]}/" mychart/Chart.yaml
-
-          helm package $REPOSITORY > .output
-          helm push $REPOSITORY oci://$REGISTRY
-          echo "chart_version=$(sed -n "s/.*-\(.*\).tgz/\1/p" .output)" >> $GITHUB_OUTPUT
+          helm package mychart
+          helm push $PACKAGE oci://$REGISTRY
 
   # Push docker image to ECR
   image_push:
@@ -171,6 +192,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           role-to-assume: ${{ needs.infra_build.outputs.github_actions_role }}
           aws-region: ${{ needs.infra_build.outputs.aws_region }}
 
@@ -184,7 +207,7 @@ jobs:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
+          IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.image_ecr_url }}"
           REPOSITORY=${ADDR[1]}
 
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG myimage
@@ -231,29 +254,34 @@ jobs:
         run: |
           echo "chart_version = \"${{ needs.chart_push.outputs.chart_version }}\"" >> terraform.tfvars
 
-          - name: Setup Terraform with specified version on the runner
-          uses: hashicorp/setup-terraform@v3
-          with:
-            cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-  
-      # run terraform plan and save plan to apply
-      - name: Terraform plan
+      - name: Terraform Init
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
-          terraform init > .nothing
-          terraform plan -out .json_plan -var-file=./environments/$environment/terraform.tfvars' > .plan_output
+          terraform init
+
+      # run terraform plan and save plan to apply
+      - name: Terraform plan
+        id: plan
+        env:
+          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+        run: |
+          terraform plan -out .json_plan  > .plan_output
 
           # Plan and print Run link and summary of plan
-          echo "Run link: $(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')"
-          echo "Summary: $(grep -E '^(Apply complete!|No changes.)' .plan_output | tr -d '\012\015')"
+          url=$(grep '^To view this run' -A1 .plan_output | grep -v '^To view this run' | tr -d '\012\015')
+          sm=$(grep -E '^(Plan:|No changes.)' .plan_output | tr -d '\012\015')
+          echo "Run link: $url"
+          echo "Summary: $sm"
+          
+          echo "summary=$sm" >> $GITHUB_OUTPUT
 
       # run terraform apply the plan from previous step
       - name: Terraform apply
+        if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         env:
           TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
         run: |
           terraform apply .json_plan > .apply_output
           echo "Run link: $(grep '^To view this run' -A1 .apply_output | grep -v '^To view this run' | tr -d '\012\015')"
           echo "Summary: $(grep -E '^(Apply complete!|No changes.)' .apply_output | tr -d '\012\015')"
-

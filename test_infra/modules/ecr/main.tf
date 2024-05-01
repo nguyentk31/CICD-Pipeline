@@ -12,7 +12,10 @@ resource "aws_ecr_repository" "chart" {
 # Github actions role (push image and chart to ECR)
 data "aws_iam_policy_document" "ga-assumerole" {
   statement {
-    actions = ["sts:AssumeRole"]
+    actions = [
+      "sts:AssumeRole",
+      "sts:TagSession"
+    ]
     effect  = "Allow"
 
     principals {
@@ -22,35 +25,8 @@ data "aws_iam_policy_document" "ga-assumerole" {
   }
 }
 
-# ECR Push Assume Role Policy
-data "aws_iam_policy_document" "ecr-push" {
-  statement {
-    actions = [
-      "ecr:CompleteLayerUpload",
-      "ecr:UploadLayerPart",
-      "ecr:InitiateLayerUpload",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:PutImage"
-    ]
-    effect = "Allow"
-    resources = [
-      aws_ecr_repository.image.arn,
-      aws_ecr_repository.chart.arn
-    ]
-  }
-
-  statement {
-    actions   = ["ecr:GetAuthorizationToken"]
-    effect    = "Allow"
-    resources = ["*"]
-  }
-}
-
 resource "aws_iam_role" "github-actions" {
   name               = "GithubActionsRole"
   assume_role_policy = data.aws_iam_policy_document.ga-assumerole.json
-  inline_policy {
-    name   = "ecr-push"
-    policy = data.aws_iam_policy_document.ecr-push.json
-  }
+  managed_policy_arns = [ "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser" ]
 }
