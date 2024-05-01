@@ -1,11 +1,11 @@
 # Private ECR Repository
 resource "aws_ecr_repository" "image" {
-  name         = "${var.env}-image-repo"
+  name         = "${var.default_tags.Project}-${var.default_tags.Environment}-image-repo"
   force_delete = true
 }
 
 resource "aws_ecr_repository" "chart" {
-  name         = "${var.env}-chart-repo"
+  name         = "${var.default_tags.Project}-${var.default_tags.Environment}-chart-repo"
   force_delete = true
 }
 
@@ -16,7 +16,7 @@ data "aws_iam_policy_document" "ga-assumerole" {
       "sts:AssumeRole",
       "sts:TagSession"
     ]
-    effect  = "Allow"
+    effect = "Allow"
 
     principals {
       type        = "AWS"
@@ -26,7 +26,7 @@ data "aws_iam_policy_document" "ga-assumerole" {
 }
 
 resource "aws_iam_role" "github-actions" {
-  name               = "${var.env}-GithubActionsRole"
-  assume_role_policy = data.aws_iam_policy_document.ga-assumerole.json
-  managed_policy_arns = [ "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser" ]
+  name                = "${var.default_tags.Project}-${var.default_tags.Environment}-GithubActionsRole"
+  assume_role_policy  = data.aws_iam_policy_document.ga-assumerole.json
+  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"]
 }
