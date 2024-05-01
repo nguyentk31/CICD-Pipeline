@@ -128,7 +128,8 @@ jobs:
     needs: [ changed_files, infra_build ] 
     # if: ${{ needs.changed_files.outputs.charts == 'true' }}
     outputs:
-      chart_version: ${{ steps.push.outputs.chart_version }}
+      # chart_version: ${{ steps.push.outputs.chart_version }}
+      chart_version: ${{ steps.get-info.outputs.chart_version }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -146,24 +147,42 @@ jobs:
           role-to-assume: ${{ needs.infra_build.outputs.github_actions_role }}
           aws-region: ${{ needs.infra_build.outputs.aws_region }}
 
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v2
+
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2 
+        run: |
+          IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
+
+          aws ecr get-login-password \
+          --region ${{ needs.infra_build.outputs.aws_region }} | helm registry login \
+          --username AWS \
+          --password-stdin ${ADDR[0]}
+
+          echo "registry=${ADDR[0]}" >> $GITHUB_OUTPUT
+          echo "repository=${ADDR[1]}" >> $GITHUB_OUTPUT
+      - name: Chage chart name and get chart version
+        id: get-info
+        run: |
+          sed -i "s/^name:.*/name: ${{ steps.login-ecr.outputs.repository }}/" mychart/Chart.yaml
+          version=$(sed -nE "s/^version: (.*$)/\1/p" mychart/Chart.yaml)
+          echo "chart_version=$version" >> $GITHUB_OUTPUT
+
+          package_name="${ADDR[1]}-$version.tgz"
+          REPO="${{ steps.login-ecr.outputs.repository }}-$version.tgz"
+          echo "package=$package_name" >> $GITHUB_OUTPUT
 
       - name: Package and push helm chart to Amazon ECR
         id: push
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          Package: ${{ steps.get-info.outputs.package }}
         run: |
-          IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
-          sed -i "s/^name:.*/name: ${ADDR[1]}/" mychart/Chart.yaml
-          version=$(sed -nE "s/^version: (.*$)/\1/p" mychart/Chart.yaml)
-          REPO="${ADDR[1]}-$version.tgz"
-          echo $REPO
-
-          helm package mychart > .output
-          helm push $REPO oci://$REGISTRY/
-          echo "chart_version=$version" >> $GITHUB_OUTPUT
+          helm package mychart
+          helm push $Package oci://$REGISTRY
+          # echo "chart_version=$version" >> $GITHUB_OUTPUT
 
   # # Push docker image to ECR
   # image_push:
