@@ -40,7 +40,7 @@ jobs:
         id: check
         run: |
           for path in $paths_check; do
-            if grep -qE "^$path/.*?" <<< "${{ steps.get-files.outputs.files }}";then
+            if grep -qE "(^| )$path/.*" <<< "${{ steps.get-files.outputs.files }}";then
               echo "$path=true" >> $GITHUB_OUTPUT
             else
               echo "$path=false" >> $GITHUB_OUTPUT

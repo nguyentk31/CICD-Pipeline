@@ -21,11 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:
-      images_changed: ${{ steps.check.outputs.images_changed }}
-      charts_changed: ${{ steps.check.outputs.charts_changed }}
+      test_app: ${{ steps.check.outputs.test_app }}
+      test_infra: ${{ steps.check.outputs.test_infra }}
+      charts: ${{ steps.check.outputs.charts }}
+      images: ${{ steps.check.outputs.images }}
     env:
-      images_path: images
-      charts_path: charts
+      paths_check: test_app test_infra charts images
     steps:
       - name: Checkout code
         uses: actions/checkout@v4.1.1
@@ -39,24 +40,17 @@ jobs:
       - name: Check images/charts path
         id: check
         run: |
-          echo '${{ steps.get-files.outputs.files }}'
+          echo 'Files changed: ${{ steps.get-files.outputs.files }}'
           # Check whether images path changed
-          if grep -qE "^${{ env.images_path }}/.*?" <<< "${{ steps.get-files.outputs.files }}";then
-            echo "images_changed=true" >> $GITHUB_OUTPUT
-            echo "images changed"
-          else
-            echo "images_changed=false" >> $GITHUB_OUTPUT
-            echo "images not changed"
-          fi
-
-          # Check whether charts path changed
-          if grep -qE "^${{ env.charts_path }}/.*?" <<< "${{ steps.get-files.outputs.files }}";then
-            echo "charts_changed=true" >> $GITHUB_OUTPUT
-            echo "charts changed"
+          for path in $paths_check; do
+            if grep -qE "(^| )$path/.*" <<< "${{ steps.get-files.outputs.files }}";then
+              echo "$path=true" >> $GITHUB_OUTPUT
+              echo "$path changed"
             else
-            echo "charts_changed=false" >> $GITHUB_OUTPUT
-            echo "charts not changed"
-          fi
+              echo "$path=false" >> $GITHUB_OUTPUT
+              echo "$path not changed"
+            fi
+          done
 
   # Plan for infrastructure implement
   infra_plan:
@@ -170,7 +164,7 @@ jobs:
             echo "app has not been deployed"
           else
             echo "app has been deployed"
-            if [[ ${{ needs.changed_files.outputs.images_changed }} == true ]] ;then
+            if [[ ${{ needs.changed_files.outputs.images }} == true ]] ;then
               echo "iamges will change!"
             else
               echo "iamges won't change!"
@@ -183,7 +177,7 @@ jobs:
               fi
             fi
 
-            if [[ ${{ needs.changed_files.outputs.charts_changed }} == true ]] ;then
+            if [[ ${{ needs.changed_files.outputs.charts }} == true ]] ;then
               echo "charts will change!"
             else
               echo "charts won't change!"
@@ -218,7 +212,7 @@ jobs:
     name: Deploy chart to kind cluster
     runs-on: ubuntu-latest
     needs: changed_files
-    if: ${{ needs.changed_files.outputs.charts_changed=='true' }}
+    if: ${{ needs.changed_files.outputs.charts=='true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -269,7 +263,7 @@ jobs:
   image_testing:
     runs-on: ubuntu-latest
     needs: changed_files
-    if: ${{ needs.changed_files.outputs.images_changed=='true' }}
+    if: ${{ needs.changed_files.outputs.images=='true' }}
     defaults:
       run:
         working-directory: "images/myimage"
