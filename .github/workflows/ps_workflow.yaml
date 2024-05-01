@@ -157,16 +157,17 @@ jobs:
         run: |
           IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
           REPOSITORY=${ADDR[1]}
-          sed -i "s/^name:.*/name: ${arr[1]}/" mychart/Chart.yaml
+          sed -i "s/^name:.*/name: ${ADDR[1]}/" mychart/Chart.yaml
           echo "${{ needs.infra_build.outputs.chart_ecr_url }}"
-          echo ${arr[1]}
-          echo ${arr[0]}
+          echo ${ADDR[1]}
+          echo ${ADDR[0]}
+          echo $(sed -n "s/.*-\(.*\).tgz/\1/p" .output)
 
           cat mychart/Chart.yaml
 
           helm package mychart > .output
-          helm push $REPOSITORY oci://$REGISTRY
-          echo "chart_version=$(sed -n "s/.*-\(.*\).tgz/\1/p" .output)" >> $GITHUB_OUTPUT
+          # helm push $REPOSITORY oci://$REGISTRY
+          # echo "chart_version=$(sed -n "s/.*-\(.*\).tgz/\1/p" .output)" >> $GITHUB_OUTPUT
 
   # # Push docker image to ECR
   # image_push:
