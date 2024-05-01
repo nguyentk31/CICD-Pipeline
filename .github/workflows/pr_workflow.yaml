@@ -12,7 +12,7 @@ env:
   TF_CLOUD_ORGANIZATION: DACN
   TF_CLOUD_PROJECT: UIT
   TF_CLI_ARGS: -no-color
-  branch: ${{ github.ref_name }}
+  branch: ${{ github.base_ref }}
   environment: ${{ github.base_ref == 'main' && 'prod' || 'dev' }}
   app_path: test_app
   infra_path: test_infra
