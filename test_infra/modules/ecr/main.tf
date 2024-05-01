@@ -12,7 +12,10 @@ resource "aws_ecr_repository" "chart" {
 # Github actions role (push image and chart to ECR)
 data "aws_iam_policy_document" "ga-assumerole" {
   statement {
-    actions = ["sts:AssumeRole"]
+    actions = [
+      "sts:AssumeRole",
+      "sts:TagSession"
+    ]
     effect  = "Allow"
 
     principals {
