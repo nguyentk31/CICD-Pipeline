@@ -159,6 +159,8 @@ jobs:
           sed -i "s/^name:.*/name: ${ADDR[1]}/" mychart/Chart.yaml
 
           helm package mychart > .output
+          ls -la .
+          echo ${ADDR[1]}
           helm push ${ADDR[1]} oci://$REGISTRY
           echo "chart_version=$(sed -n "s/.*-\(.*\).tgz/\1/p" .output)" >> $GITHUB_OUTPUT
 
