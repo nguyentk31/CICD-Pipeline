@@ -1,11 +1,11 @@
 # Private ECR Repository
 resource "aws_ecr_repository" "image" {
-  name         = "image-repo1"
+  name         = "image-repo"
   force_delete = true
 }
 
 resource "aws_ecr_repository" "chart" {
-  name         = "chart-repo1"
+  name         = "chart-repo"
   force_delete = true
 }
 
