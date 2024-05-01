@@ -257,9 +257,8 @@ jobs:
           else
             echo "iamges won't change!"
             value="\"$(terraform output -raw image_tag 2>.err)\""
-            echo $value
-            cat .err
-            if [ $? -ne 0 ] && grep -q "Output \"image_tag\" not found" .err; then
+            if [ $? -ne 0 ]; then
+
               echo "can't find previous image_tag's value"
             else
               echo "image_tag = $value" >> terraform.tfvars
@@ -277,9 +276,8 @@ jobs:
           else
             echo "charts won't change!"
             value="\"$(terraform output -raw chart_version 2>.err)\""
-            echo $value
-            cat .err
-            if [ $? -ne 0 ] && grep -q "Output \"chart_version\" not found" .err; then
+            if [ $? -ne 0 ]; then
+
               echo "can't find previous chart_version's value"
             else
               echo "chart_version = $value" >> terraform.tfvars

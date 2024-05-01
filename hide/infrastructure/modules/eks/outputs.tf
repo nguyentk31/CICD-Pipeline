@@ -22,3 +22,8 @@ output "oidc_provider_arn" {
   value       = aws_iam_openid_connect_provider.oidc-provider.arn
   description = "IAM OIDC provider's ARN"
 }
+
+output "master_role" {
+  value       = aws_iam_role.eks-master.arn
+  description = "EKS Master role ARN"
+}

@@ -1,6 +1,6 @@
 # Main variables
 project     = "myprj"
-environment = "dev"
+environment = "prod"
 aws_region  = "us-east-1"
 
 # VPC module's variables
