@@ -157,6 +157,7 @@ jobs:
           IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
           REPOSITORY=${ADDR[1]}
           sed -i "s/^name:.*/name: ${arr[1]}/" mychart/Chart.yaml
+          cat mychart/Chart.yaml
 
           helm package mychart > .output
           helm push $REPOSITORY oci://$REGISTRY
