@@ -22,7 +22,7 @@ resource "aws_vpc" "uit" {
   enable_dns_support   = true
 
   tags = {
-    Name = "${var.env}-vpc1"
+    Name = "${var.env}-vpc"
   }
 }
 
