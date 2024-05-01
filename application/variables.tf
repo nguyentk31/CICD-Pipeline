@@ -1,7 +1,6 @@
 # Main variables
 variable "aws_region" {
   type        = string
-  default     = "us-east-1"
   description = "AWS Region"
 }
 
@@ -36,6 +35,7 @@ variable "lbc_namespace" {
 
 variable "lbc_role" {
   type        = string
+  default     = "lbc_role"
   description = "AWS LBCr Role (ARN)"
 }
 
@@ -58,11 +58,12 @@ variable "chart_ecr_url" {
 # Application's variables
 variable "chart_version" {
   type        = string
-  default     = "my-application"
+  default     = "latest"
   description = "Helm chart name"
 }
 
 variable "image_tag" {
   type        = string
+  default     = "latest"
   description = "Application image's tag"
 }
