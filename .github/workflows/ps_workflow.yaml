@@ -153,13 +153,12 @@ jobs:
         id: push
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: ${{ steps.rename.outputs.repo }}
         run: |
           IFS='/' read -ra ADDR <<< "${{ needs.infra_build.outputs.chart_ecr_url }}"
           REPOSITORY=${ADDR[1]}
           sed -i "s/^name:.*/name: ${arr[1]}/" mychart/Chart.yaml
 
-          helm package $REPOSITORY > .output
+          helm package mychart > .output
           helm push $REPOSITORY oci://$REGISTRY
           echo "chart_version=$(sed -n "s/.*-\(.*\).tgz/\1/p" .output)" >> $GITHUB_OUTPUT
 
