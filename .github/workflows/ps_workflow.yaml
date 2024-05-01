@@ -81,7 +81,7 @@ jobs:
 
       # run terraform plan and save plan to apply
       - name: Terraform plan
-        if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
+        # if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
@@ -94,7 +94,7 @@ jobs:
 
       # run terraform apply the plan from previous step
       - name: Terraform apply
-        if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
+        # if: ${{ needs.changed_files.outputs.test_infra == 'true' }}
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
@@ -135,6 +135,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           role-to-assume: ${{ needs.infra_build.outputs.github_actions_role }}
           aws-region: ${{ needs.infra_build.outputs.aws_region }}
 
@@ -175,6 +177,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           role-to-assume: ${{ needs.infra_build.outputs.github_actions_role }}
           aws-region: ${{ needs.infra_build.outputs.aws_region }}
 
