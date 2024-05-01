@@ -181,6 +181,7 @@ jobs:
           Package: ${{ steps.get-info.outputs.package }}
         run: |
           helm package mychart
+          echo $Package
           helm push $Package oci://$REGISTRY
           # echo "chart_version=$version" >> $GITHUB_OUTPUT
 
