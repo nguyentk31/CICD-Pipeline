@@ -233,13 +233,9 @@ jobs:
           # Write outputs get from infra build job that match application variable
           infra_outputs='${{ needs.infra_build.outputs.infra_outputs }}'
           vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
-          echo "before write"
-          cat terraform.tfvars
           for var in $vars; do
             echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
           done
-          echo "after write"
-          cat terraform.tfvars
 
       - name: Terraform Init
         env:
