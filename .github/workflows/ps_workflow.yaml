@@ -35,7 +35,7 @@ jobs:
         id: get-files
         run: |
           # Using git diff to compare sha between the current commit and the base branch of pull request
-          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | xargs -I '$' echo "$PWD/$" | xargs)" >> $GITHUB_OUTPUT
+          echo "files=$(git diff --name-only ${{ github.event.before   }} ${{ github.event.after }} | xargs)" >> $GITHUB_OUTPUT
       - name: Check changed path
         id: check
         run: |
