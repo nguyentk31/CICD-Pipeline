@@ -7,6 +7,7 @@ on:
 env:
   TF_CLOUD_ORGANIZATION: DACN
   TF_CLOUD_PROJECT: UIT
+  TF_CLI_ARGS: -no-color
   environment: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
   app_path: application
   infra_path: infrastructure
@@ -52,7 +53,7 @@ jobs:
     name: Destroy application
     runs-on: ubuntu-latest
     needs: get_data
-    if: ${{ needs.get_data.outputs.error != 'true' }}
+    if: ${{ needs.get_data.outputs.error != 'true' || !contains(needs.get_data.outputs.infra_outputs, 'No outputs found') }}
     defaults:
       run:
         working-directory: ${{ env.app_path }}
@@ -103,7 +104,7 @@ jobs:
 
   infra_destroy:
     name: Destroy infrastructure
-    if: ${{ always() && needs.get_data.outputs.error != 'error' }}
+    if: ${{ always() && needs.get_data.outputs.error != 'true' && !contains(needs.get_data.outputs.infra_outputs, 'No outputs found') }}
     needs: [ app_destroy, get_data ]
     runs-on: ubuntu-latest
     defaults:
