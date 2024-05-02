@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       infra_outputs: ${{ steps.output.outputs.infra_outputs }}
+      error: ${{ steps.output.outputs.error }}
     defaults:
       run:
         working-directory: ${{ env.infra_path }}
@@ -41,12 +42,17 @@ jobs:
         run: |
           set +e
           terraform output > infra_outputs_file
-          echo "infra_outputs=$(cat infra_outputs_file | tr -s '\015\012' ';')" >> $GITHUB_OUTPUT
+          if [ $? -ne 0 ]; then
+            echo "error='true'" >> $GITHUB_OUTPUT
+          else
+            echo "infra_outputs=$(cat infra_outputs_file | tr -s '\015\012' ';')" >> $GITHUB_OUTPUT
+          fi
 
   app_destroy:
     name: Destroy application
     runs-on: ubuntu-latest
     needs: get_data
+    if: ${{ needs.get_data.outputs.error != 'true' }}
     defaults:
       run:
         working-directory: ${{ env.app_path }}
@@ -97,7 +103,8 @@ jobs:
 
   infra_destroy:
     name: Destroy infrastructure
-    needs: app_destroy
+    if: ${{ always() && needs.get_data.outputs.error != 'error' }}
+    needs: [ app_destroy, get_data ]
     runs-on: ubuntu-latest
     defaults:
       run:
