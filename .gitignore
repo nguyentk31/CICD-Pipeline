@@ -1,2 +1,2 @@
 api.txt
-.terraform/
+.terraform*
