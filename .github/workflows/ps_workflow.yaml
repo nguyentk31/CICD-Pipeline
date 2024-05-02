@@ -115,7 +115,6 @@ jobs:
         id: output
         run: |
           terraform output > infra_outputs_file
-          cat infra_outputs_file
           echo "infra_outputs=$(cat infra_outputs_file | tr -s '\015\012' ';')" >> $GITHUB_OUTPUT
 
           for var in $variables; do
