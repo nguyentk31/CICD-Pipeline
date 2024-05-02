@@ -41,11 +41,6 @@ output "lbc_role" {
   description = "LBC Role (ARN)"
 }
 
-output "alb_sg" {
-  value       = module.lbc.alb_sg
-  description = "ALB's security group ID"
-}
-
 # Outputs of ECR module
 output "image_ecr_url" {
   value       = module.ecr.image_ecr_url

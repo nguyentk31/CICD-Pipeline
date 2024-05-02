@@ -12,59 +12,92 @@ env:
   infra_path: infrastructure
 
 jobs:
-  app_destroy:
-    name: Destroy application
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.app_path }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4.1.1
+  # get_data:
+  #   name: Get infrastructure outputs
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     infra_outputs: ${{ steps.output.outputs.infra_outputs }}
+  #   defaults:
+  #     run:
+  #       working-directory: ${{ env.infra_path }}
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4.1.1
 
-      - name: Setup Terraform with specified version on the runner
-        uses: hashicorp/setup-terraform@v3
-        with:
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+  #     - name: Setup Terraform with specified version on the runner
+  #       uses: hashicorp/setup-terraform@v3
+  #       with:
+  #         cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-      - name: Terraform Init
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-        run: |
-          terraform init
+  #     - name: Terraform Init
+  #       env:
+  #         TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
+  #       run: |
+  #         terraform init
+  #         echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
 
-      - name: Terraform Plan
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-        id: plan
-        run: |
-          set +e
-          terraform plan -no-color -destroy -out plan.json > .output
-          if [ $? -ne 0 ]; then
-            echo "Destroy failed"
-            echo "failed=true" >> $GITHUB_OUTPUT
-          else
-            url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
-            sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
-            echo "Run link: $url"
-            echo "Summary: $sm"
-            
-            echo "summary=$sm" >> $GITHUB_OUTPUT
-          fi
+  #     - name: Terraform output
+  #       id: output
+  #       run: |
+  #         set +e
+  #         terraform output > infra_outputs_file
+  #         echo "infra_outputs=$(cat infra_outputs_file | tr -s '\015\012' ';')" >> $GITHUB_OUTPUT
+
+  # app_destroy:
+  #   name: Destroy application
+  #   runs-on: ubuntu-latest
+  #   needs: get_data
+  #   defaults:
+  #     run:
+  #       working-directory: ${{ env.app_path }}
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4.1.1
+
+  #     - name: Setup Terraform with specified version on the runner
+  #       uses: hashicorp/setup-terraform@v3
+  #       with:
+  #         cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+  #     # Write variables from infra outputs for plan in next step
+  #     - name: Write variable from infra_outputs
+  #       run: |
+  #         # Write outputs get from infra build job that match application variable
+  #         infra_outputs='${{ needs.get_data.outputs.infra_outputs }}'
+  #         vars=$(sed -n 's/^variable "\(.*\)" {$/\1/p' variables.tf)
+  #         for var in $vars; do
+  #           echo $infra_outputs | sed -nE "s/(^|.*;)($var.*$)/\2/p" | sed -n "s/;.*//p" >> terraform.tfvars
+  #         done
+
+  #     - name: Terraform Init
+  #       env:
+  #         TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
+  #       run: |
+  #         terraform init
+  #         echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
+
+  #     - name: Terraform Plan
+  #       id: plan
+  #       run: |
+  #         terraform plan -no-color -destroy -out plan.json > .output
+
+  #         url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
+  #         sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
+  #         echo "Run link: $url"
+  #         echo "Summary: $sm"
           
-      - name: Terraform Apply
-        env:
-          TF_WORKSPACE: ${{ format('app-{0}', env.environment) }}
-        if: ${{ !steps.plan.outputs.failed == 'true' || !startsWith(steps.plan.outputs.summary, 'No changes.') }}
-        run: |
-          terraform apply plan.json -no-color > output
-          echo "Run link: $(grep '^To view this run' -A1 output | grep -v '^To view this run' | tr -d '\012\015')"
-          echo "Summary: $(grep -E '^(Apply complete!|No changes.)' output | tr -d '\012\015')"
+  #         echo "summary=$sm" >> $GITHUB_OUTPUT
+          
+  #     - name: Terraform Apply
+  #       if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
+  #       run: |
+  #         terraform apply plan.json -no-color > output
+  #         echo "Run link: $(grep '^To view this run' -A1 output | grep -v '^To view this run' | tr -d '\012\015')"
+  #         echo "Summary: $(grep -E '^(Apply complete!|No changes.)' output | tr -d '\012\015')"
 
   infra_destroy:
     name: Destroy infrastructure
-    if: ${{ always() }}
-    needs: app_destroy
+    # needs: app_destroy
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -83,30 +116,21 @@ jobs:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         run: |
           terraform init
+          echo "TF_WORKSPACE=$TF_WORKSPACE" >> $GITHUB_ENV
 
       - name: Terraform Plan
-        env:
-          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
         id: plan
         run: |
-          set +e
           terraform plan -no-color -destroy -out plan.json -var-file=./environments/$environment/terraform.tfvars > .output
-          if [ $? -ne 0 ]; then
-            echo "Destroy failed"
-            echo "failed=true" >> $GITHUB_OUTPUT
-          else
-            url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
-            sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
-            echo "Run link: $url"
-            echo "Summary: $sm"
-            
-            echo "summary=$sm" >> $GITHUB_OUTPUT
-          fi
+          url=$(grep '^To view this run' -A1 .output | grep -v '^To view this run' | tr -d '\012\015')
+          sm=$(grep -E '^(Plan:|No changes.)' .output | tr -d '\012\015')
+          echo "Run link: $url"
+          echo "Summary: $sm"
+          
+          echo "summary=$sm" >> $GITHUB_OUTPUT
 
       - name: Terraform Apply
-        env:
-          TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
-        if: ${{ !steps.plan.outputs.failed == 'true' || !startsWith(steps.plan.outputs.summary, 'No changes.') }}
+        if: ${{ !startsWith(steps.plan.outputs.summary, 'No changes.') }}
         run: |
           terraform apply plan.json -no-color > output
           echo "Run link: $(grep '^To view this run' -A1 output | grep -v '^To view this run' | tr -d '\012\015')"

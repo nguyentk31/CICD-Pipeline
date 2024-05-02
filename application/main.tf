@@ -50,7 +50,7 @@ resource "helm_release" "aws-lbc-chart" {
 
 # Using helm to install app chart after pushed to ECR
 resource "helm_release" "app-chart" {
-  name       = "my-application"
+  name       = "myapp"
   repository = "oci://${split("/", var.chart_ecr_url)[0]}"
   chart      = split("/", var.chart_ecr_url)[1]
   version    = var.chart_version
@@ -63,11 +63,6 @@ resource "helm_release" "app-chart" {
   set {
     name  = "image.tag"
     value = var.image_tag
-  }
-
-  set {
-    name  = "ingress.annotations.alb\\.ingress\\.kubernetes\\.io/security-groups"
-    value = var.alb_sg
   }
 
   depends_on = [ helm_release.aws-lbc-chart ]

@@ -263,7 +263,6 @@ jobs:
               echo "found previous image_tag's value"
             fi
           fi
-          cat terraform.tfvars
 
       - name: Update chart version
         run: |
@@ -282,7 +281,6 @@ jobs:
               echo "found previous chart_version's value"
             fi
           fi
-          cat terraform.tfvars
 
       # run terraform plan and save plan to apply
       - name: Terraform plan
