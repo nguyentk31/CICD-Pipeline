@@ -39,11 +39,6 @@ variable "lbc_role" {
   description = "AWS LBCr Role (ARN)"
 }
 
-variable "alb_sg" {
-  type        = string
-  description = "ALB security group id"
-}
-
 # ECR URL
 variable "image_ecr_url" {
   type        = string
