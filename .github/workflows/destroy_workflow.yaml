@@ -53,7 +53,7 @@ jobs:
     name: Destroy application
     runs-on: ubuntu-latest
     needs: get_data
-    if: ${{ needs.get_data.outputs.error != 'true' || !contains(needs.get_data.outputs.infra_outputs, 'No outputs found') }}
+    if: ${{ needs.get_data.outputs.error != 'true' && !contains(needs.get_data.outputs.infra_outputs, 'No outputs found') }}
     defaults:
       run:
         working-directory: ${{ env.app_path }}
