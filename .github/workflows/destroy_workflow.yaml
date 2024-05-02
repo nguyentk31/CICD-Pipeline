@@ -104,8 +104,7 @@ jobs:
 
   infra_destroy:
     name: Destroy infrastructure
-    if: ${{ always() && needs.get_data.outputs.error != 'true' && !contains(needs.get_data.outputs.infra_outputs, 'No outputs found') }}
-    needs: [ app_destroy, get_data ]
+    needs: app_destroy
     runs-on: ubuntu-latest
     defaults:
       run:
