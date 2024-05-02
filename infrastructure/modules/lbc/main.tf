@@ -42,33 +42,3 @@ resource "aws_iam_role_policy_attachment" "lbc-AWSLoadBalancerController" {
   policy_arn = aws_iam_policy.AWSLoadBalancerController.arn
   role       = aws_iam_role.lbc.name
 }
-
-# Security Group for Application load balancer (ALB)
-resource "aws_security_group" "alb" {
-  name        = "${var.default_tags.Project}-${var.default_tags.Environment}-ALB-SG"
-  description = "Allow HTTPS to ALB"
-  vpc_id      = var.cluster_vpc
-
-  ingress {
-    description = "HTTP ingress"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTPS ingress"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}

@@ -65,10 +65,5 @@ resource "helm_release" "app-chart" {
     value = var.image_tag
   }
 
-  set {
-    name  = "ingress.annotations.alb\\.ingress\\.kubernetes\\.io/security-groups"
-    value = var.alb_sg
-  }
-
   depends_on = [ helm_release.aws-lbc-chart ]
 }
