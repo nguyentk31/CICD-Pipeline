@@ -1,5 +1,5 @@
 # Main variables
-project     = "myprj"
+project     = "cicd"
 environment = "prod"
 aws_region  = "us-east-1"
 
