@@ -7,7 +7,7 @@ on:
       - main
       - dev
   workflow_dispatch:
-      
+
 env:
   TF_CLOUD_ORGANIZATION: DACN
   TF_CLOUD_PROJECT: UIT
@@ -17,6 +17,23 @@ env:
   infra_path: infrastructure
 
 jobs:
+  scan_sonarqube:
+    name: Scan SonarQube
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.1
+        with:
+          fetch-depth: 0
+      - name: Analyze with SonarCloud
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=cicdpipeline
+            -Dsonar.projectKey=cicdpipeline_CICD-demo
+            -Dsonar.sources=.
   # Find file paths that trigger workflow
   changed_files:
     name: Find file paths
@@ -79,7 +96,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-        
+
       - name: Terraform Init
         env:
           TF_WORKSPACE: ${{ format('infra-{0}', env.environment) }}
@@ -121,11 +138,11 @@ jobs:
             echo $(terraform output -raw $var)
             echo "$var=$(terraform output -raw $var)" >> $GITHUB_OUTPUT
           done
-  
+
   # Push helm chart to ECR
   chart_push:
     name: Push helm chart
-    needs: [ changed_files, infra_build ]
+    needs: [changed_files, infra_build]
     if: ${{ needs.changed_files.outputs.charts == 'true' }}
     outputs:
       chart_version: ${{ steps.modify.outputs.chart_version }}
@@ -149,7 +166,7 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-      
+
       - name: Modify helm chart
         id: modify
         run: |
@@ -172,7 +189,7 @@ jobs:
   # Push docker image to ECR
   image_push:
     name: Push docker image
-    needs: [ changed_files, infra_build ] 
+    needs: [changed_files, infra_build]
     if: ${{ needs.changed_files.outputs.images == 'true' }}
     outputs:
       image_tag: ${{ steps.push.outputs.image_tag }}
@@ -213,7 +230,7 @@ jobs:
   app_deploy:
     name: Deploy app to EKS Cluster
     if: ${{ always() }}
-    needs: [ changed_files, infra_build, image_push, chart_push ]
+    needs: [changed_files, infra_build, image_push, chart_push]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -292,7 +309,7 @@ jobs:
           sm=$(grep -E '^(Plan:|No changes.)' .plan_output | tr -d '\012\015')
           echo "Run link: $url"
           echo "Summary: $sm"
-          
+
           echo "summary=$sm" >> $GITHUB_OUTPUT
 
       # run terraform apply the plan from previous step
