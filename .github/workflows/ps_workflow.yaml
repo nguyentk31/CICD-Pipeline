@@ -35,6 +35,7 @@ jobs:
             -Dsonar.organization=cicdpipeline
             -Dsonar.projectKey=cicdpipeline_CICD-demo
             -Dsonar.sources=.
+
   # Find file paths that trigger workflow
   changed_files:
     name: Find file paths
