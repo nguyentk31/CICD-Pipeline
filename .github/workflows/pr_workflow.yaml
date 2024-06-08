@@ -38,6 +38,7 @@ jobs:
   # Find file paths that trigger workflow
   changed_files:
     name: Find file paths
+    needs: scan_sonarqube
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:
