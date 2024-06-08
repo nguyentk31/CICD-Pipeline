@@ -12,7 +12,7 @@ COPY . .
 RUN npm install
 
 # Copy the application source code into the container
-COPY . .
+# COPY . .
 
 # Build the application
 RUN npm run build
