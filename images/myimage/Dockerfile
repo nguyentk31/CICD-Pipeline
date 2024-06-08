@@ -5,12 +5,14 @@ FROM node:21.6-alpine3.18 AS builder
 WORKDIR /app
 
 # Copy package.json and package-lock.json
-COPY package*.json ./
+# COPY package*.json ./
+COPY . .
 
+# Install dependencies
 RUN npm install
 
 # Copy the application source code into the container
-COPY . .
+# COPY . .
 
 # Build the application
 RUN npm run build
