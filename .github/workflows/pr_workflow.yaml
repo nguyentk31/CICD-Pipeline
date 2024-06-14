@@ -18,6 +18,7 @@ env:
   infra_path: infrastructure
 
 jobs:
+  # Scan code with SonarQube
   scan_sonarqube:
     name: Scan SonarQube
     runs-on: ubuntu-latest
@@ -30,14 +31,11 @@ jobs:
         uses: sonarsource/sonarcloud-github-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.organization=cicdpipeline
-            -Dsonar.projectKey=cicdpipeline_CICD-demo
-            -Dsonar.sources=.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   # Find file paths that trigger workflow
   changed_files:
     name: Find file paths
+    needs: scan_sonarqube
     runs-on: ubuntu-latest
     # Outputs find paths found to other jobs
     outputs:

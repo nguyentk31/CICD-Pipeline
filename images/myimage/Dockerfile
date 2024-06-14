@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Create the final image
-FROM nginx:1.20 as run
+FROM nginx:1.20 AS run
 
 # Set the working directory within the container
 WORKDIR /app
