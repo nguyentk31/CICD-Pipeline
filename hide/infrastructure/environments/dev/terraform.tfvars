@@ -1,7 +1,7 @@
 # Main variables
 project     = "myprj"
 environment = "dev"
-aws_region  = "us-east-2"
+aws_region  = "us-east-1"
 
 # VPC module's variables
 vpc_config = {
@@ -17,7 +17,7 @@ vpc_config = {
 # EKS module's variables
 k8s_version       = "1.29"
 eks_addons        = ["vpc-cni", "coredns", "kube-proxy", "eks-pod-identity-agent"]
-service_ipv4_cidr = "10.10.0.0/16"
+service_ipv4_cidr = "10.100.0.0/16"
 
 # LBC module's variables
 lbc_sa = "aws-load-balancer-controller"
